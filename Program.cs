@@ -27,24 +27,9 @@ builder.Services.AddSingleton(redisSettings);
 builder.Services.AddSingleton(credentialsSettings);
 builder.Services.AddSingleton(reportsStorageSettings);
 var redisConnectionString = builder.Configuration.GetValue<string>("Redis:ConnectionString");
-
-// 注册 RedisService，并传递连接字符串
 builder.Services.AddSingleton<RedisService>(provider => new RedisService(redisConnectionString));
-
-//builder.Services.AddSingleton<ReportBackgroundService>();
-//builder.Services.AddSingleton<TelerikBackgroundService>();System.ArgumentNullException: 'Value cannot be null. Arg_ParamName_Name'
-
-//builder.Services.AddSingleton<TokenService>(provider =>
-//    new TokenService(
-//        reportingSettings.BaseUrl, 
-//        credentialsSettings.Username,
-//        credentialsSettings.Password));
-//builder.Services.Configure<DataFetchOptions>(builder.Configuration.GetSection("DataFetch"));
 builder.Services.AddHostedService<ReportsHostedService>();
 
-
-
-// 注入 TelerikService中TelerikReportServerClient类
 builder.Services.AddSingleton<TelerikReportServerClient>(provider =>
     new TelerikReportServerClient(
         reportingSettings.BaseUrl,
