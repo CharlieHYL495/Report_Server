@@ -1,5 +1,13 @@
 ﻿namespace Report.Server.Workers
 {
+    using Microsoft.Extensions.Logging;
+    using Microsoft.Extensions.DependencyInjection;
+    using Microsoft.Extensions.Configuration;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using System;
+    using Reporting.Server.Services;
+
     public class ReportsHostedService : IHostedService, IDisposable
     {
         private long _timerInterval;
@@ -11,12 +19,15 @@
         private bool _running;
         private Task _currentTask;
 
-        public ReportsHostedService(
-            IServiceProvider services
-        )
+        public ReportsHostedService(IServiceProvider services, IConfiguration configuration, ILogger<ReportsHostedService>logger
+            )
         {
             Services = services;
+            _logger = logger;
+            _timerInterval = configuration.GetValue<long>("TimerInterval");
+            _maximumOrderWorkers = configuration.GetValue<int>("MaximumOrderWorkers");
         }
+
 
         public Task StartAsync(CancellationToken stoppingToken)
         {
@@ -45,9 +56,20 @@
         private async Task RunAsync()
         {
             using var scope = Services.CreateScope();
+            var telerikService = scope.ServiceProvider.GetRequiredService<TelerikReportServerClient>();
+            var token = await telerikService.GetTokenAsync();
 
-            var semaphore = new SemaphoreSlim(_maximumOrderWorkers); // Maximum 7 concurrent tasks
-            
+            if (!string.IsNullOrEmpty(token))
+            {
+                var categories = await telerikService.GetReportCategoriesAsync(token);
+             
+
+                _logger.LogInformation("Fetched report categories successfully.");
+            }
+            else
+            {
+                _logger.LogWarning("Failed to fetch token for Telerik Report Server.");
+            }
             lock (Locker)
             {
                 _running = false;
