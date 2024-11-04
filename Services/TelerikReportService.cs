@@ -18,20 +18,22 @@ namespace Reporting.Server.Services
     using Telerik.Reporting.Processing;
     using System.Configuration;
     using DocumentFormat.OpenXml.Bibliography;
+    using Microsoft.Extensions.Options;
 
     public class TelerikReportServerClient
     {
         private readonly string _baseUrl;
         private readonly string _username;
         private readonly string _password;
-        private readonly ConnectionMultiplexer _redisConnection;
+        private readonly RedisClient _redisClient;
 
-        public TelerikReportServerClient(string baseUrl, string username, string password, string redisConnectionString)
+        public TelerikReportServerClient(IOptions<TelerikReportOptions> options)
         {
-            _baseUrl = baseUrl;
-            _username = username;
-            _password = password;
-            _redisConnection = ConnectionMultiplexer.Connect(redisConnectionString);
+            _baseUrl = options.Value.BaseUrl;
+            _username = options.Value.Username;
+            _password = options.Value.Password;
+            var redisOptions = options.Value.RedisOptions;
+            _redisClient = new RedisClient(redisOptions.Host, redisOptions.Port, redisOptions.Password);
         }
 
         public async Task<string> GetTokenAsync()
@@ -120,8 +122,7 @@ namespace Reporting.Server.Services
                 var parameterJson = JsonConvert.SerializeObject(parameter);
                 await File.WriteAllTextAsync(filePath, parameterJson);
 
-                var db = _redisConnection.GetDatabase();
-                await db.StringSetAsync($"parameter:{parameter.Name}", parameterJson);
+                _redisClient.SetValue($"parameter:{parameter.Name}", parameterJson);
             }
         }
 
@@ -130,7 +131,7 @@ namespace Reporting.Server.Services
 
             //await SaveToLocalFile("C://Reports/categories.json", categoriesJson);
 
-            var db = _redisConnection.GetDatabase();
+
             //await db.StringSetAsync("categories", categoriesJson);
 
             foreach (var category in categories)
@@ -182,7 +183,7 @@ namespace Reporting.Server.Services
                 var categoryJson = JsonConvert.SerializeObject(categoryWithReports, Formatting.Indented);
 
 
-                await db.StringSetAsync($"{category.Id}", categoryJson);
+                _redisClient.SetValue($"{category.Id}", categoryJson); // 保存到 Redis
                 var reportFileName = $"{category.Name}.json";
 
                 var reportFilePath = Path.Combine("C://Reports", reportFileName);
@@ -194,7 +195,7 @@ namespace Reporting.Server.Services
 
         public async Task SaveReportsAsync(IEnumerable<TelerikReportInfo> reports, string token)
         {
-            var db = _redisConnection.GetDatabase();
+
             List<TelerikReportInfo> reportList = new List<TelerikReportInfo>();
 
             foreach (var report in reports)
@@ -232,7 +233,7 @@ namespace Reporting.Server.Services
             foreach (var report in reportList)
             {
                 var reportJson = JsonConvert.SerializeObject(report, Formatting.Indented);
-                await db.StringSetAsync($"{report.Name}", reportJson);
+                _redisClient.SetValue($"{report.Id}", reportJson); // 保存到 Redis
                 var reportFileName = $"{report.Name}.json";
 
                 var reportFilePath = Path.Combine("C://Reports", reportFileName);
@@ -241,125 +242,123 @@ namespace Reporting.Server.Services
             }
         }
 
-        public async Task SaveToLocalFile(string filePath, string content)
+        //public async Task SaveToLocalFile(string filePath, string content)
+        //{
+        //    using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
+        //    {
+        //        await writer.WriteAsync(content);
+        //    }
+        //}
+
+        //public void SaveReportToLocal(TelerikReportDefinition reportDefinition, string reportId)
+        //{
+        //    var filePath = Path.Combine("C://Reports", reportId + reportDefinition.Extension);
+        //    File.WriteAllBytes(filePath, reportDefinition.Content);
+        //}
+
+        //    public async Task SaveReportToRedis(TelerikReportDefinition reportDefinition, string reportId)
+        //    {
+        //        var reportJson = JsonConvert.SerializeObject(reportDefinition);
+
+        //        _redisClient.SetValue($"{reportId.Id}", reportJson); // 保存到 Redis
+        //    }
+
+        //}
+
+
+        public class TelerikReportsResponse
         {
-            using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
-            {
-                await writer.WriteAsync(content);
-            }
+            public List<TelerikReportInfo> ReportInfos { get; set; } = new List<TelerikReportInfo>();
+            public List<string> Errors { get; set; } = new List<string>();
         }
 
-        public void SaveReportToLocal(TelerikReportDefinition reportDefinition, string reportId)
+        public class TelerikCategoriesResponse
         {
-            var filePath = Path.Combine("C://Reports", reportId + reportDefinition.Extension);
-            File.WriteAllBytes(filePath, reportDefinition.Content);
+            public List<TelerikReportCategory> Categories { get; set; } = new List<TelerikReportCategory>();
+            public List<string> Errors { get; set; } = new List<string>();
         }
 
-        public async Task SaveReportToRedis(TelerikReportDefinition reportDefinition, string reportId)
+
+        public class TelerikUserToken
         {
-            var reportJson = JsonConvert.SerializeObject(reportDefinition);
-            var db = _redisConnection.GetDatabase();
-            await db.StringSetAsync($"report:{reportId}", reportJson);
+            public string access_token { get; set; }
+            public string token_type { get; set; }
+            public int expires_in { get; set; }
+            public string userName { get; set; }
+
+            [JsonProperty(".issued")]
+            public string Issued { get; set; }
+
+            [JsonProperty(".expires")]
+            public string Expires { get; set; }
+        }
+        public class Token
+        {
+            public string token { get; set; }
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        public class TelerikReportCategory
+        {
+            public string Id { get; set; }
+            public string Name { get; set; }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public class TelerikReportInfo
+        {
+            public string Id { get; set; }
+            public string CategoryId { get; set; }
+            public object Description { get; set; }
+            public string Name { get; set; }
+            public string CreatedBy { get; set; }
+            public string LockedBy { get; set; }
+            public string Extension { get; set; }
+            public bool IsDraft { get; set; }
+            public bool IsFavorite { get; set; }
+            public string LastRevisionId { get; set; }
+            public string CreatedByName { get; set; }
+            public string LockedByName { get; set; }
+            public string LastModifiedDate { get; set; }
+            public DateTime LastModifiedDateUtc { get; set; }
+            public bool CanEdit { get; set; }
+            public bool CanView { get; set; }
+            public List<TelerikReportParameter> Parameters { get; set; }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public class TelerikReportDefinition
+        {
+            public string Id { get; set; }
+            public byte[] Content { get; set; }
+            public string Extension { get; set; }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public class TelerikReportParameter
+        {
+            public string Name { get; set; }
+            public string Type { get; set; }
+            public object Value { get; set; }
+            public bool Mergeable { get; set; }
+            public string Text { get; set; }
+            public bool Visible { get; set; }
+            public bool MultiValue { get; set; }
+            public bool AllowNull { get; set; }
+            public bool AllowBlank { get; set; }
+            public bool AutoRefresh { get; set; }
+        }
+
+
+
+
     }
-
-
-    public class TelerikReportsResponse
-    {
-        public List<TelerikReportInfo> ReportInfos { get; set; } = new List<TelerikReportInfo>();
-        public List<string> Errors { get; set; } = new List<string>();
-    }
-
-    public class TelerikCategoriesResponse
-    {
-        public List<TelerikReportCategory> Categories { get; set; } = new List<TelerikReportCategory>();
-        public List<string> Errors { get; set; } = new List<string>();
-    }
-
-
-    public class TelerikUserToken
-    {
-        public string access_token { get; set; }
-        public string token_type { get; set; }
-        public int expires_in { get; set; }
-        public string userName { get; set; }
-
-        [JsonProperty(".issued")]
-        public string Issued { get; set; }
-
-        [JsonProperty(".expires")]
-        public string Expires { get; set; }
-    }
-    public class Token
-    {
-        public string token { get; set; }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class TelerikReportCategory
-    {
-        public string Id { get; set; }
-        public string Name { get; set; }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class TelerikReportInfo
-    {
-        public string Id { get; set; }
-        public string CategoryId { get; set; }
-        public object Description { get; set; }
-        public string Name { get; set; }
-        public string CreatedBy { get; set; }
-        public string LockedBy { get; set; }
-        public string Extension { get; set; }
-        public bool IsDraft { get; set; }
-        public bool IsFavorite { get; set; }
-        public string LastRevisionId { get; set; }
-        public string CreatedByName { get; set; }
-        public string LockedByName { get; set; }
-        public string LastModifiedDate { get; set; }
-        public DateTime LastModifiedDateUtc { get; set; }
-        public bool CanEdit { get; set; }
-        public bool CanView { get; set; }
-        public List<TelerikReportParameter> Parameters { get; set; }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class TelerikReportDefinition
-    {
-        public string Id { get; set; }
-        public byte[] Content { get; set; }
-        public string Extension { get; set; }
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    public class TelerikReportParameter
-    {
-        public string Name { get; set; }
-        public string Type { get; set; }
-        public object Value { get; set; }
-        public bool Mergeable { get; set; }
-        public string Text { get; set; }
-        public bool Visible { get; set; }
-        public bool MultiValue { get; set; }
-        public bool AllowNull { get; set; }
-        public bool AllowBlank { get; set; }
-        public bool AutoRefresh { get; set; }
-    }
-
-
-
-
 }
-
-
-

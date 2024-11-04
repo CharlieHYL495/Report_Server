@@ -1,53 +1,41 @@
-﻿using Report.Server.Workers;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using Report.Server.Workers;
 using Reporting.Server.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
-using Reporting.Server.Services;
+using ServiceStack.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+// 添加服务到容器
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-
-// 读取配置
-var reportingSettings = builder.Configuration.GetSection("ReportServer").Get<ReportingSettings>();
-var redisSettings = builder.Configuration.GetSection("Redis").Get<RedisSettings>();
-var credentialsSettings = builder.Configuration.GetSection("Credentials").Get<CredentialsSettings>();
-var reportsStorageSettings = builder.Configuration.GetSection("ReportsStorage").Get<ReportsStorageSettings>();
-
-// 注入配置
-builder.Services.AddSingleton(reportingSettings);
-builder.Services.AddSingleton(redisSettings);
-builder.Services.AddSingleton(credentialsSettings);
-builder.Services.AddSingleton(reportsStorageSettings);
-var redisConnectionString = builder.Configuration.GetValue<string>("Redis:ConnectionString");
-builder.Services.AddSingleton<RedisService>(provider => new RedisService(redisConnectionString));
-builder.Services.AddHostedService<ReportsHostedService>();
-
-builder.Services.AddSingleton<TelerikReportServerClient>(provider =>
-    new TelerikReportServerClient(
-        reportingSettings.BaseUrl,
-        credentialsSettings.Username,
-        credentialsSettings.Password,
-        $"{redisSettings.Host}:{redisSettings.Port},password={redisSettings.Password}"
-    ));
-
 builder.Services.AddControllers();
 
+// 读取配置
+var reportsStorageSettings = builder.Configuration.GetSection("ReportsStorage").Get<ReportsStorageSettings>();
+var redisOptions = builder.Configuration.GetSection("Redis").Get<RedisOptions>();
+var telerikReportOptions = builder.Configuration.GetSection("TelerikReportOptions").Get<TelerikReportOptions>();
 
+// 注入配置
+builder.Services.AddSingleton(reportsStorageSettings);
+builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
+builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
 
+// 注入服务
 
+builder.Services.AddSingleton<TelerikReportServerClient>();
 
+// 添加后台服务
+builder.Services.AddHostedService<ReportsHostedService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// 配置 HTTP 请求管道
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -55,35 +43,36 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseAuthentication(); 
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
-// 中间件配置
-public class ReportingSettings
-{
-    public string BaseUrl { get; set; }
-    public string TokenEndpoint { get; set; }
-}
 
-public class RedisSettings
-{
-    public string Host { get; set; }
-    public string Port { get; set; }
-    public string Password { get; set; }
-    public string Period { get; set; }
-}
-
-public class CredentialsSettings
-{
-    public string Username { get; set; }
-    public string Password { get; set; }
-}
-
+// 配置类定义
 public class ReportsStorageSettings
 {
     public string FolderPath { get; set; }
 }
 
+public class RedisOptions
+{
+    public string Host { get; set; }
+    public int Port { get; set; }
+    public string Password { get; set; }
+
+    public string ConnectionString => $"{Host}:{Port},password={Password}";
+}
+
+public class TelerikReportOptions
+{
+    public string BaseUrl { get; set; }
+    public string Username { get; set; }
+    public string Password { get; set; }
+    public RedisOptions RedisOptions { get; set; } // 属性名称改为大写
+}
+public class UserCredentials
+{
+    public string Username { get; set; }
+    public string Password { get; set; }
+}
