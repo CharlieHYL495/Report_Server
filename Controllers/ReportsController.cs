@@ -1,5 +1,7 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using Reporting.Server.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -17,51 +19,39 @@ namespace Report.Server.Controllers
         {
             _redisService = redisService;
         }
-
-        [Authorize]
         [HttpGet("merchants/{merchantGuid}/reports")]
+        [Authorize]
         public async Task<IActionResult> GetMerchantReports([FromRoute] string merchantGuid)
         {
-            // 从 Redis 获取商家的所有报表类别
-            var reportCategoriesData = await _redisService.GetCategoryDataAsync(merchantGuid);
 
-            if (reportCategoriesData == null)
+            if (string.IsNullOrEmpty(merchantGuid))
             {
-                return NotFound("No reports found for this merchant.");
+                return BadRequest(new { message = "Merchant GUID cannot be null or empty." });
             }
 
-            // 假设从 Redis 获取的数据是某种格式，解析为 ReportCategory 列表
-            var reportCategories = new List<ReportCategory>();
-
-            // 解析从 Redis 获取的数据
-            // 假设 reportCategoriesData 是一个 JSON 字符串，你可以根据实际情况调整
-            foreach (var category in reportCategoriesData)
+            try
             {
-                reportCategories.Add(new ReportCategory
+                // 获取商家的报表类别
+                var categoriesJson = await _redisService.GetMerchantCategories(merchantGuid);
+
+                // 假设 GetMerchantReportsAsync 返回的是一个 JSON 格式的字符串，需要反序列化
+                var categories = JsonConvert.DeserializeObject<List<string>>(categoriesJson)?.ToList() ?? new List<string>();
+
+                // 检查是否有报表类别
+                if (categories.Count == 0)
                 {
-                    CategoryName = category.CategoryName, // 根据实际字段名调整
-                    Reports = category.Reports // 这里获取报表列表
-                });
+                    return NotFound(new { message = "No reports found for the merchant." });
+                }
+
+                return Ok(new { categories });
+            }
+            catch (Exception ex)
+            {
+                // 返回 500 错误及异常信息
+                return StatusCode(500, new { message = ex.Message, details = ex.StackTrace });
             }
 
-            var response = new MerchantReportResponse
-            {
-                MerchantGuid = merchantGuid,
-                TelerikReportCategory = reportCategories
-            };
-
-            return Ok(response);
         }
     }
-}
-public class MerchantReportResponse
-{
-    public string MerchantGuid { get; set; }
-    public List<TelerikReportCategory> TelerikReportCategory { get; set; }
-}
 
-public class TelerikReportsResponse
-{
-    public string CategoryName { get; set; }
-    public List<string> Reports { get; set; } // 你可以根据具体报表对象类型调整
 }

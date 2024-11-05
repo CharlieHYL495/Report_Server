@@ -1,13 +1,14 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Reporting.Server.Services;
-
-namespace Report.Server.Controllers
+namespace Reporting.Server.Services
 {
+    using Microsoft.AspNetCore.Authorization;
+    using Microsoft.AspNetCore.Mvc;
+    using System.Threading.Tasks;
+
     [ApiController]
     [Route("api/v1")]
     public class TelerikController : ControllerBase
     {
+
         private readonly RedisService _redisService;
 
         public TelerikController(RedisService redisService)
@@ -15,8 +16,9 @@ namespace Report.Server.Controllers
 
             _redisService = redisService;
         }
-        [Authorize]
+
         [HttpGet("Telerik")]
+        [Authorize]
         public async Task<IActionResult> GetAllRedisData()
         {
             var allData = await _redisService.GetAllDataAsync();
