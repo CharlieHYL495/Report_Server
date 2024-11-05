@@ -194,7 +194,7 @@ builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSectio
 builder.Services.AddSingleton(reportsStorageSettings);
 
 // 配置 Redis 客户端
-string redisConnectionString = redisConfig["ConnectionString"];
+var redisConnectionString = builder.Configuration["RedisConnString"];
 builder.Services.AddSingleton<IRedisClientsManager>(c => new RedisManagerPool(redisConnectionString));
 builder.Services.AddSingleton<IRedisClient>(c => c.GetRequiredService<IRedisClientsManager>().GetClient());
 
