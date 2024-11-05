@@ -189,7 +189,7 @@ builder.Services.AddAuthentication(options =>
 });
 
 // 注入配置
-builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
+//builder.Services.Configure<RedisOptions>(builder.Configuration.GetSection("Redis"));
 builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
 builder.Services.AddSingleton(reportsStorageSettings);
 
@@ -239,21 +239,21 @@ public class ReportsStorageSettings
     public string FolderPath { get; set; }
 }
 
-public class RedisOptions
-{
-    public string Host { get; set; }
-    public int Port { get; set; }
-    public string Password { get; set; }
+//public class RedisOptions
+//{
+//    public string Host { get; set; }
+//    public int Port { get; set; }
+//    public string Password { get; set; }
 
-    public string ConnectionString => $"{Host}:{Port},password={Password}";
-}
+//    public string ConnectionString => $"{Host}:{Port},password={Password}";
+//}
 
 public class TelerikReportOptions
 {
     public string BaseUrl { get; set; }
     public string Username { get; set; }
     public string Password { get; set; }
-    public RedisOptions RedisOptions { get; set; }
+    //public RedisOptions RedisOptions { get; set; }
 }
 
 public class TimerIntervalSettings
