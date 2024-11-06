@@ -6,32 +6,39 @@ using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using static Reporting.Server.Services.TelerikReportServerClient;
 
-namespace Reporting.Server.Services
+namespace Report.Server.Services
 {
     public class RedisService
     {
         private readonly IRedisClientsManager _redisClientsManager;
-        //private readonly TelerikReportServerClient _TelerikReportServerClient;
 
         public RedisService(IRedisClientsManager redisClientsManager)
         {
             _redisClientsManager = redisClientsManager;
-            //_TelerikReportServerClient = TelerikReportServerClient;
         }
 
         public async Task<Dictionary<string, string>> GetAllDataAsync()
         {
-            var allData = new Dictionary<string, string>();
-            var keys = _redisClientsManager.GetClient().GetAllKeys();
+            var data = new Dictionary<string, string>();
+            Console.WriteLine($"Connecting to Redis at {_redisClientsManager.GetClientAsync()}");
 
-            foreach (var key in keys)
+         
+            await using (var redis = await _redisClientsManager.GetClientAsync()) 
             {
-                var value = await Task.Run(() => _redisClientsManager.GetClient().GetValue(key));
-                allData[key] = value;
+              
+                var keys = await redis.SearchKeysAsync("*"); 
+
+               
+                foreach (var key in keys)
+                {
+                    var value = await redis.GetValueAsync(key); // 异步获取键的值
+                    data[key] = value;
+                }
             }
 
-            return allData;
+            return data;
         }
+
 
         public async Task<string> GetCategoryDataAsync(string key)
 
@@ -53,10 +60,11 @@ namespace Reporting.Server.Services
             {
                 throw new ArgumentNullException(nameof(merchantGuid), "Merchant GUID cannot be null or empty.");
             }
+
+
+            var categoryKey = $"report_server:merchants:{merchantGuid}:report_categories";
+            var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(categoryKey);
         
-          
-                var categoryKey = $"report_server:merchants:{merchantGuid}:report_categories";
-                var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(categoryKey);
 
 
             if (string.IsNullOrEmpty(reportCategoriesJson))

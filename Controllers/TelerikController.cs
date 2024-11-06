@@ -1,3 +1,5 @@
+using Report.Server.Services;
+
 namespace Reporting.Server.Services
 {
     using Microsoft.AspNetCore.Authorization;
@@ -18,7 +20,7 @@ namespace Reporting.Server.Services
         }
 
         [HttpGet("Telerik")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> GetAllRedisData()
         {
             var allData = await _redisService.GetAllDataAsync();

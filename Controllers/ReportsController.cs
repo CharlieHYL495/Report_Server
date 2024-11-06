@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
-using Reporting.Server.Services;
+using Report.Server.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using static Reporting.Server.Services.TelerikReportServerClient;
@@ -20,7 +20,7 @@ namespace Report.Server.Controllers
             _redisService = redisService;
         }
         [HttpGet("merchants/{merchantGuid}/reports")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> GetMerchantReports([FromRoute] string merchantGuid)
         {
 

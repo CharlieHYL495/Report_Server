@@ -1,6 +1,4 @@
-﻿
-
-namespace Reporting.Server.Services
+﻿namespace Reporting.Server.Services
 {
     using System;
     using System.Collections.Generic;
@@ -64,7 +62,6 @@ namespace Reporting.Server.Services
                 .AppendPathSegment("api/reportserver/v2/categories")
                 .WithOAuthBearerToken(token)
                 .GetJsonAsync<IEnumerable<TelerikReportCategory>>();
-            Console.WriteLine("OKKKKKKKKK");
             await SaveCategoriesAsync(result, token);
             return result;
         }
@@ -227,6 +224,7 @@ namespace Reporting.Server.Services
                     Parameters = parameterList
                 };
                 reportList.Add(reportsWithParameters);
+               
 
 
             }

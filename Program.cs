@@ -143,7 +143,7 @@
 ////    public string Username { get; set; }
 ////    public string Password { get; set; }
 ////}
-///using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.Options;
@@ -155,6 +155,7 @@ using Report.Server.Workers;
 using Reporting.Server.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Report.Server.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -166,7 +167,7 @@ var telerikReportOptions = builder.Configuration.GetSection("TelerikReportOption
 var timerInterval = builder.Configuration.GetValue<int>("TimerInterval");
 var maximumOrderWorkers = builder.Configuration.GetValue<int>("MaximumOrderWorkers");
 
-// 配置 JWT 认证
+ //配置 JWT 认证
 var key = jwtSettings["Key"];
 var issuer = jwtSettings["Issuer"];
 
@@ -196,7 +197,7 @@ builder.Services.AddSingleton(reportsStorageSettings);
 // 配置 Redis 客户端
 var redisConnectionString = builder.Configuration["RedisConnString"];
 builder.Services.AddSingleton<IRedisClientsManager>(c => new RedisManagerPool(redisConnectionString));
-builder.Services.AddSingleton<IRedisClient>(c => c.GetRequiredService<IRedisClientsManager>().GetClient());
+builder.Services.AddScoped<RedisService>();
 
 // 注入其他服务
 builder.Services.AddScoped<TelerikReportServerClient>();
