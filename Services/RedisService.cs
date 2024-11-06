@@ -4,7 +4,7 @@ using ServiceStack.Redis;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
-using static Reporting.Server.Services.TelerikReportServerClient;
+using static Report.Server.Services.TelerikReportService;
 
 namespace Report.Server.Services
 {

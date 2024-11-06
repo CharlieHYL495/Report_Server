@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 using Report.Server.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using static Reporting.Server.Services.TelerikReportServerClient;
+using static Report.Server.Services.TelerikReportService;
 
 namespace Report.Server.Controllers
 {
@@ -20,7 +20,7 @@ namespace Report.Server.Controllers
             _redisService = redisService;
         }
         [HttpGet("merchants/{merchantGuid}/reports")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> GetMerchantReports([FromRoute] string merchantGuid)
         {
 
@@ -47,7 +47,7 @@ namespace Report.Server.Controllers
             }
             catch (Exception ex)
             {
-                // 返回 500 错误及异常信息
+           
                 return StatusCode(500, new { message = ex.Message, details = ex.StackTrace });
             }
 

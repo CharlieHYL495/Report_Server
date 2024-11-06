@@ -7,6 +7,7 @@
     using System.Threading.Tasks;
     using System;
     using Reporting.Server.Services;
+    using Report.Server.Services;
 
     public class ReportsHostedService : IHostedService, IDisposable
     {
@@ -56,7 +57,7 @@
         private async Task RunAsync()
         {
             using var scope = Services.CreateScope();
-            var telerikService = scope.ServiceProvider.GetRequiredService<TelerikReportServerClient>();
+            var telerikService = scope.ServiceProvider.GetRequiredService<TelerikReportService>();
             var token = await telerikService.GetTokenAsync();
 
             if (!string.IsNullOrEmpty(token))

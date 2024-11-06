@@ -20,7 +20,7 @@ namespace Reporting.Server.Services
         }
 
         [HttpGet("Telerik")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> GetAllRedisData()
         {
             var allData = await _redisService.GetAllDataAsync();
