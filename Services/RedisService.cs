@@ -2,15 +2,18 @@
 using Newtonsoft.Json;
 using ServiceStack.Redis;
 using System.Collections.Generic;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using static Report.Server.Services.TelerikReportService;
+
 
 namespace Report.Server.Services
 {
     public class RedisService
     {
         private readonly IRedisClientsManager _redisClientsManager;
+
 
         public RedisService(IRedisClientsManager redisClientsManager)
         {
@@ -22,13 +25,13 @@ namespace Report.Server.Services
             var data = new Dictionary<string, string>();
             Console.WriteLine($"Connecting to Redis at {_redisClientsManager.GetClientAsync()}");
 
-         
-            await using (var redis = await _redisClientsManager.GetClientAsync()) 
-            {
-              
-                var keys = await redis.SearchKeysAsync("*"); 
 
-               
+            await using (var redis = await _redisClientsManager.GetClientAsync())
+            {
+
+                var keys = await redis.SearchKeysAsync("*");
+
+
                 foreach (var key in keys)
                 {
                     var value = await redis.GetValueAsync(key); // 异步获取键的值
@@ -42,7 +45,8 @@ namespace Report.Server.Services
 
         public async Task<string> GetCategoryDataAsync(string key)
 
-        {   if (key == null)
+        {
+            if (key == null)
             { throw new ArgumentNullException(nameof(key)); }
             else
             {
@@ -64,19 +68,35 @@ namespace Report.Server.Services
 
             var categoryKey = $"report_server:merchants:{merchantGuid}:report_categories";
             var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(categoryKey);
-        
 
 
-            if (string.IsNullOrEmpty(reportCategoriesJson))
-            {
-                return JsonConvert.SerializeObject(new { categories = new string[] { } });
-            }
 
+            var categories = string.IsNullOrEmpty(reportCategoriesJson)
+                ? new { categories = new string[] { } }
+                : JsonConvert.DeserializeObject(reportCategoriesJson);
+            return JsonConvert.SerializeObject(categories);
 
-            //var categories = JsonConvert.DeserializeObject<List<string>>(reportCategoriesJson);
-
-            return reportCategoriesJson;
-        
         }
+        //public async Task<string> GetApiDataAsync(string token)
+        //{
+        //    var client = _httpClientFactory.CreateClient();
+
+        //    // 将 Bearer Token 添加到请求头
+        //    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+        //    var response = await client.GetAsync("https://your-api-url.com/data");
+
+        //    if (response.IsSuccessStatusCode)
+        //    {
+        //        var content = await response.Content.ReadAsStringAsync();
+        //        return content;
+        //    }
+        //    else
+        //    {
+        //        return null;
+        //    }
+        //}
+
     }
 }
+

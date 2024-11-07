@@ -14,10 +14,12 @@ namespace Report.Server.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly RedisService _redisService;
+        private readonly TelerikReportService _telerikReportService;
 
-        public ReportsController(RedisService redisService)
+        public ReportsController(RedisService redisService, TelerikReportService telerikReportService)
         {
             _redisService = redisService;
+            _telerikReportService = telerikReportService;
         }
         [HttpGet("merchants/{merchantGuid}/reports")]
         [Authorize]

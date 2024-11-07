@@ -59,6 +59,7 @@
             using var scope = Services.CreateScope();
             var telerikService = scope.ServiceProvider.GetRequiredService<TelerikReportService>();
             var token = await telerikService.GetTokenAsync();
+            Console.WriteLine(token);
 
             if (!string.IsNullOrEmpty(token))
             {

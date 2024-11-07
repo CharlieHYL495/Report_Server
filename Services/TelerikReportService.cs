@@ -48,6 +48,7 @@
                     }).Result.GetJsonAsync<TelerikUserToken>();
 
                 return token?.access_token;
+            
             }
             catch (FlurlHttpException ex)
             {

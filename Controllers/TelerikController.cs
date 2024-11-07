@@ -12,18 +12,24 @@ namespace Reporting.Server.Services
     {
 
         private readonly RedisService _redisService;
+        private readonly TelerikReportService _telerikReportService;
 
-        public TelerikController(RedisService redisService)
+        public TelerikController(RedisService redisService, TelerikReportService telerikReportService)
         {
 
             _redisService = redisService;
+            _telerikReportService = telerikReportService;
         }
 
         [HttpGet("Telerik")]
         [Authorize]
+
         public async Task<IActionResult> GetAllRedisData()
         {
-            var allData = await _redisService.GetAllDataAsync();
+
+
+            // ?? RedisService ??????? Token
+            var allData = await _redisService.GetAllDataAsync(); // ? Token ??? RedisService
 
             if (allData.Count == 0)
             {

@@ -6,6 +6,7 @@ using ServiceStack.Redis;
 using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Cryptography;
 using Report.Server.Workers;
 using Reporting.Server.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,9 +23,17 @@ var telerikReportOptions = builder.Configuration.GetSection("TelerikReportOption
 var timerInterval = builder.Configuration.GetValue<int>("TimerInterval");
 var maximumOrderWorkers = builder.Configuration.GetValue<int>("MaximumOrderWorkers");
 
- //配置 JWT 认证
+//配置 JWT 认证
 var key = jwtSettings["Key"];
 var issuer = jwtSettings["Issuer"];
+
+builder.Services.AddSingleton<RsaSecurityKey>(provider =>
+{
+    var rsa = RSA.Create();
+    rsa.ImportRSAPublicKey(source: Convert.FromBase64String(key), out int _);
+    return new RsaSecurityKey(rsa);
+});
+
 
 builder.Services.AddAuthentication(options =>
 {
@@ -35,14 +44,24 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
+        ValidateIssuer = false,
+        ValidateAudience = false,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
         ValidIssuer = issuer,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key))
     };
 });
+
+
+builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>>(provider =>
+{
+    return new ConfigureOptions<JwtBearerOptions>(options =>
+    {
+        var rsaSecurityKey = provider.GetRequiredService<RsaSecurityKey>();
+        options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
+    });
+});
+
 
 // 注入配置
 builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
