@@ -66,15 +66,16 @@ namespace Report.Server.Services
             }
 
 
-            var categoryKey = $"report_server:merchants:{merchantGuid}:report_categories";
-            var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(categoryKey);
+            var MerchantsRedisKey = $"wyo:report_server:merchants";
+           
+            var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(MerchantsRedisKey);
 
 
 
-            var categories = string.IsNullOrEmpty(reportCategoriesJson)
-                ? new { categories = new string[] { } }
-                : JsonConvert.DeserializeObject(reportCategoriesJson);
-            return JsonConvert.SerializeObject(categories);
+            //var categories = string.IsNullOrEmpty(reportCategoriesJson)
+            //    ? new { categories = new string[] { } }
+            //    : JsonConvert.DeserializeObject(reportCategoriesJson);
+            return reportCategoriesJson;
 
         }
         //public async Task<string> GetApiDataAsync(string token)
@@ -100,3 +101,7 @@ namespace Report.Server.Services
     }
 }
 
+//public class reportCategoriesJson
+//{
+//    public List<TelerikReportCategory> Categories { get; set; } = new List<TelerikReportCategory>();
+//}

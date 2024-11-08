@@ -22,7 +22,7 @@ namespace Report.Server.Controllers
             _telerikReportService = telerikReportService;
         }
         [HttpGet("merchants/{merchantGuid}/reports")]
-        [Authorize]
+        //[Authorize]
         public async Task<IActionResult> GetMerchantReports([FromRoute] string merchantGuid)
         {
 
@@ -34,18 +34,18 @@ namespace Report.Server.Controllers
             try
             {
                 // 获取商家的报表类别
-                var categoriesJson = await _redisService.GetMerchantCategories(merchantGuid);
+                var categoriesJson = await _redisService.GetAllDataAsync();
 
-                // 假设 GetMerchantReportsAsync 返回的是一个 JSON 格式的字符串，需要反序列化
-                var categories = JsonConvert.DeserializeObject<List<string>>(categoriesJson)?.ToList() ?? new List<string>();
+                //// 假设 GetMerchantReportsAsync 返回的是一个 JSON 格式的字符串，需要反序列化
+                //var categories = JsonConvert.DeserializeObject<List<string>>(categoriesJson)?.ToList() ?? new List<string>();
 
-                // 检查是否有报表类别
-                if (categories.Count == 0)
-                {
-                    return NotFound(new { message = "No reports found for the merchant." });
-                }
+                //// 检查是否有报表类别
+                //if (categories.Count == 0)
+                //{
+                //    return NotFound(new { message = "No reports found for the merchant." });
+                //}
 
-                return Ok(new { categories });
+                return Ok(categoriesJson);
             }
             catch (Exception ex)
             {
