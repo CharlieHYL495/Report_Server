@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using ServiceStack;
 using static Report.Server.Services.TelerikReportService;
 
 
@@ -57,18 +58,71 @@ namespace Report.Server.Services
         }
 
 
-        public async Task<string> GetMerchantCategories(string merchantGuid)
+        public async Task<List<string>> GetMerchantCategoriesAsync(string MerchantGuid)
+        {
+
+                // 拉取商家的报表类别
+                var MerchantsRedisKey = $"wyo:report_server:merchants";
+
+                // 异步获取 Redis 中存储的值
+                var MerchantsJson = await Task.Run(() => _redisClientsManager.GetClient().GetValue(MerchantsRedisKey));
+
+
+
+
+            // 反序列化 JSON 数据为 List<MerchantData> 对象
+            var merchantList = JsonConvert.DeserializeObject<List<MerchantData>>(MerchantsJson);
+
+            var categories = new List<string>();
+
+            // 遍历每个商户并获取其 report_categories
+            //foreach (var merchant in merchantList)
+            //{
+            //    if (merchant.ReportCategories != null)
+            //    {
+            //        foreach (var category in merchant.ReportCategories)
+            //        {
+            //            categories.Add(category);
+            //        }
+            //    }
+            //}
+            var Categories = new List<string>();
+            foreach (var merchant in merchantList)
+            {
+                
+                if (merchant.MerchantGuid == MerchantGuid)
+                {
+                    foreach (var category in merchant.ReportCategories)
+                    {
+                        categories.Add(category);
+                    }
+                }
+            }
+
+             
+            foreach (var category in categories)
+            {
+                
+                var catagoriesJson = await Task.Run(() => _redisClientsManager.GetClient().GetValue(category));
+                Categories.Add(catagoriesJson);
+            }
+
+            return Categories;
+        }
+
+        public async Task<string> GetCategoryReports(string reportcategoryid)
         {
             // 拉取商家的报表类别
-            if (string.IsNullOrEmpty(merchantGuid))
+            if (string.IsNullOrEmpty(reportcategoryid))
             {
-                throw new ArgumentNullException(nameof(merchantGuid), "Merchant GUID cannot be null or empty.");
+                throw new ArgumentNullException(nameof(reportcategoryid), "Merchant GUID cannot be null or empty.");
             }
 
 
-            var MerchantsRedisKey = $"wyo:report_server:merchants";
-           
-            var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(MerchantsRedisKey);
+            var ReportsRedisKey = $"wyo:report_server: reports: {reportcategoryid}";
+
+
+            var reportCategoriesJson = _redisClientsManager.GetClient().GetValue(ReportsRedisKey);
 
 
 
@@ -104,4 +158,13 @@ namespace Report.Server.Services
 //public class reportCategoriesJson
 //{
 //    public List<TelerikReportCategory> Categories { get; set; } = new List<TelerikReportCategory>();
+
 //}
+public class MerchantData
+{
+    [JsonProperty("merchant_guid")]
+    public string MerchantGuid { get; set; }
+
+    [JsonProperty("report_categories")]
+    public List<string> ReportCategories { get; set; }
+}

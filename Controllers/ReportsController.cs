@@ -34,7 +34,7 @@ namespace Report.Server.Controllers
             try
             {
                 // 获取商家的报表类别
-                var categoriesJson = await _redisService.GetAllDataAsync();
+                var categoriesJson = await _redisService.GetMerchantCategoriesAsync(merchantGuid);
 
                 //// 假设 GetMerchantReportsAsync 返回的是一个 JSON 格式的字符串，需要反序列化
                 //var categories = JsonConvert.DeserializeObject<List<string>>(categoriesJson)?.ToList() ?? new List<string>();
