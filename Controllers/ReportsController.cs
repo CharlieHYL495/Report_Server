@@ -33,17 +33,9 @@ namespace Report.Server.Controllers
 
             try
             {
-                // 获取商家的报表类别
+
                 var categoriesJson = await _redisService.GetMerchantCategoriesAsync(merchantGuid);
 
-                //// 假设 GetMerchantReportsAsync 返回的是一个 JSON 格式的字符串，需要反序列化
-                //var categories = JsonConvert.DeserializeObject<List<string>>(categoriesJson)?.ToList() ?? new List<string>();
-
-                //// 检查是否有报表类别
-                //if (categories.Count == 0)
-                //{
-                //    return NotFound(new { message = "No reports found for the merchant." });
-                //}
 
                 return Ok(categoriesJson);
             }
@@ -52,8 +44,32 @@ namespace Report.Server.Controllers
            
                 return StatusCode(500, new { message = ex.Message, details = ex.StackTrace });
             }
-
+     
         }
+        [HttpGet("merchant/{categoryId}/reports")]
+        public async Task<IActionResult> GetCategoryReports([FromRoute] string categoryId)
+        {
+
+            if (string.IsNullOrEmpty(categoryId))
+            {
+                return BadRequest(new { message = "Merchant GUID cannot be null or empty." });
+            }
+
+            try
+            {
+
+                var categoriesJson = await _redisService.GetCategoryReportsAsync(categoryId);
+
+
+                return Ok(categoriesJson);
+            }
+            catch (Exception ex)
+            {
+
+                return StatusCode(500, new { message = ex.Message, details = ex.StackTrace });
+            }
+        }
+
     }
 
 }

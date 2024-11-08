@@ -28,8 +28,8 @@ namespace Reporting.Server.Services
         {
 
 
-            // ?? RedisService ??????? Token
-            var allData = await _redisService.GetAllDataAsync(); // ? Token ??? RedisService
+
+            var allData = await _redisService.GetAllDataAsync(); 
 
             if (allData.Count == 0)
             {
