@@ -75,17 +75,6 @@ namespace Report.Server.Services
 
             var categories = new List<string>();
 
-            // 遍历每个商户并获取其 report_categories
-            //foreach (var merchant in merchantList)
-            //{
-            //    if (merchant.ReportCategories != null)
-            //    {
-            //        foreach (var category in merchant.ReportCategories)
-            //        {
-            //            categories.Add(category);
-            //        }
-            //    }
-            //}
             var Categories = new List<string>();
             foreach (var merchant in merchantList)
             {
