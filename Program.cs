@@ -27,44 +27,47 @@ var maximumOrderWorkers = builder.Configuration.GetValue<int>("MaximumOrderWorke
 var key = jwtSettings["Key"];
 var issuer = jwtSettings["Issuer"];
 
-//builder.Services.AddSingleton<RsaSecurityKey>(provider =>
-//{
-//    var rsa = RSA.Create();
-//    rsa.ImportRSAPublicKey(source: Convert.FromBase64String(key), out int _);
-//    return new RsaSecurityKey(rsa);
-//});
+builder.Services.AddSingleton<RsaSecurityKey>(provider =>
+{
+    var rsa = RSA.Create();
+    rsa.ImportRSAPublicKey(source: Convert.FromBase64String(key), out int _);
+    return new RsaSecurityKey(rsa);
+});
 
 
-//builder.Services.AddAuthentication(options =>
-//{
-//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//})
-//.AddJwtBearer(options =>
-//{
-//    options.TokenValidationParameters = new TokenValidationParameters
-//    {
-//        ValidateIssuer = false,
-//        ValidateAudience = false,
-//        ValidateLifetime = true,
-//        ValidateIssuerSigningKey = true,
-//        ValidIssuer = issuer,
-//    };
-//});
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = issuer,
+    };
+});
 
 
-//builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>>(provider =>
-//{
-//    return new ConfigureOptions<JwtBearerOptions>(options =>
-//    {
-//        var rsaSecurityKey = provider.GetRequiredService<RsaSecurityKey>();
-//        options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
-//    });
-//});
-//builder.Services.AddAuthorization(options =>
-//{
-//    options.FallbackPolicy = options.DefaultPolicy;
-//});
+builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>>(provider =>
+{
+    return new ConfigureOptions<JwtBearerOptions>(options =>
+    {
+        var rsaSecurityKey = provider.GetRequiredService<RsaSecurityKey>();
+        options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
+    });
+});
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = options.DefaultPolicy;
+});
+
+
+
 
 
 // 注入配置

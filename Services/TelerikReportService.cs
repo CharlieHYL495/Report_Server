@@ -182,8 +182,7 @@
 
                 _redisClientsManager.GetClient().SetValue($"wyo:report_server:reports:{category.Id}", categoryJson); // 保存到 Redis
                 var reportFileName = $"{category.Name}.json";
-                //var categoryKey = $"merchant:{merchantGuid}:report_categories";
-                //_redisClientsManager.GetClient().SetValue(categoryKey, JsonConvert.SerializeObject(categoryJson));
+
 
 
                 var reportFilePath = Path.Combine("C://Reports", reportFileName);

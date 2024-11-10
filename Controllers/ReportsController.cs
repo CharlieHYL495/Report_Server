@@ -22,7 +22,7 @@ namespace Report.Server.Controllers
             _telerikReportService = telerikReportService;
         }
         [HttpGet("merchants/{merchantGuid}/reports")]
-        //[Authorize]
+        [Authorize]
         public async Task<IActionResult> GetMerchantReports([FromRoute] string merchantGuid)
         {
 

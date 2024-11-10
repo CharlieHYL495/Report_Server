@@ -30,7 +30,7 @@ namespace Report.Server.Services
 
             foreach (var key in keys)
             {
-                var value = await client.GetValueAsync(key);  // Correct async method
+                var value = await client.GetValueAsync(key);  
                 data[key] = value;
             }
 
