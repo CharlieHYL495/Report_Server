@@ -7,11 +7,17 @@ using System.Text;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
+using Microsoft.AspNetCore.Identity;
 using Report.Server.Workers;
 using Reporting.Server.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Report.Server.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using ServiceStack;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,45 +32,65 @@ var maximumOrderWorkers = builder.Configuration.GetValue<int>("MaximumOrderWorke
 //配置 JWT 认证
 var key = jwtSettings["Key"];
 var issuer = jwtSettings["Issuer"];
-
-builder.Services.AddSingleton<RsaSecurityKey>(provider =>
+builder.Services.AddAuthentication(x =>
 {
-    var rsa = RSA.Create();
-    rsa.ImportRSAPublicKey(source: Convert.FromBase64String(key), out int _);
-    return new RsaSecurityKey(rsa);
-});
-
-
-builder.Services.AddAuthentication(options =>
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+}).AddJwtBearer(x =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-})
-.AddJwtBearer(options =>
-{
-    options.TokenValidationParameters = new TokenValidationParameters
+    x.RequireHttpsMetadata = false;
+    x.SaveToken = true;
+    x.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = false,
-        ValidateAudience = false,
-        ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = issuer,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(key)),
+        ValidateIssuer = false,
+        ValidateAudience = false
     };
 });
 
 
-builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>>(provider =>
-{
-    return new ConfigureOptions<JwtBearerOptions>(options =>
-    {
-        var rsaSecurityKey = provider.GetRequiredService<RsaSecurityKey>();
-        options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
-    });
-});
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = options.DefaultPolicy;
-});
+
+//builder.Services.AddSingleton<JwtAuthenticationManager>(new JwtAuthenticationManager(key));
+
+//builder.Services.AddSingleton<RsaSecurityKey>(provider =>
+//{
+//    var rsa = RSA.Create();
+//    rsa.ImportRSAPublicKey(source: Convert.FromBase64String(key), bytesRead: out int _);
+//    return new RsaSecurityKey(rsa);
+//});
+
+
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+//})
+//.AddJwtBearer(options =>
+//{
+//    options.TokenValidationParameters = new TokenValidationParameters
+//    {
+//        ValidateIssuer = false,
+//        ValidateAudience = false,
+//        ValidateLifetime = true,
+//        ValidateIssuerSigningKey = true,
+//        ValidIssuer = issuer
+//    };
+//});
+
+
+//builder.Services.AddSingleton<IConfigureOptions<JwtBearerOptions>>(provider =>
+//{
+//    return new ConfigureOptions<JwtBearerOptions>(options =>
+//    {
+//        var rsaSecurityKey = provider.GetRequiredService<RsaSecurityKey>();
+//        options.TokenValidationParameters.IssuerSigningKey = rsaSecurityKey;
+//    });
+//});
+//builder.Services.AddAuthorization(options =>
+//{
+//    options.FallbackPolicy = options.DefaultPolicy;
+//});
 
 
 

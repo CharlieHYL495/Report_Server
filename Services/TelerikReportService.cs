@@ -46,7 +46,7 @@
                         { "username", _username },
                         { "password", _password }
                     }).Result.GetJsonAsync<TelerikUserToken>();
-
+                Console.WriteLine(token?.access_token);
                 return token?.access_token;
             
             }
@@ -233,7 +233,7 @@
             foreach (var report in reportList)
             {
                 var reportJson = JsonConvert.SerializeObject(report, Formatting.Indented);
-                _redisClientsManager.GetClient().SetValue($"{report.Id}", reportJson); // 保存到 Redis
+                _redisClientsManager.GetClient().SetValue($"{report.Id}", reportJson); 
                 var reportFileName = $"{report.Name}.json";
 
                 var reportFilePath = Path.Combine("C://Reports", reportFileName);

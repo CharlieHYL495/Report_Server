@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using ServiceStack;
 using static Report.Server.Services.TelerikReportService;
 
@@ -38,7 +39,7 @@ namespace Report.Server.Services
         }
 
 
-        public async Task<List<string>> GetMerchantCategoriesAsync(string MerchantGuid)
+        public async Task<List<object>> GetMerchantCategoriesAsync(string MerchantGuid)
         {
             var MerchantsRedisKey = $"wyo:report_server:merchants";
             var client = await _redisClientsManager.GetClientAsync();
@@ -55,13 +56,13 @@ namespace Report.Server.Services
                 }
             }
 
-            var Categories = new List<string>();
+            var Categories = new List<object>();
             foreach (var category in categories)
             {
                 var catagoriesJson = await client.GetValueAsync(category);
-                Categories.Add(catagoriesJson);
+                Categories.Add(JSON.parse(catagoriesJson));
             }
-
+            
             return Categories;
         }
     
@@ -89,25 +90,6 @@ namespace Report.Server.Services
         
         return reportCategoriesJson;
     }
-    //public async Task<string> GetApiDataAsync(string token)
-    //{
-    //    var client = _httpClientFactory.CreateClient();
-
-    //    // 将 Bearer Token 添加到请求头
-    //    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-    //    var response = await client.GetAsync("https://your-api-url.com/data");
-
-    //    if (response.IsSuccessStatusCode)
-    //    {
-    //        var content = await response.Content.ReadAsStringAsync();
-    //        return content;
-    //    }
-    //    else
-    //    {
-    //        return null;
-    //    }
-    //}
 
 }
 }

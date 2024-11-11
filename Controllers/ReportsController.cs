@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using Report.Server.Services;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using static Report.Server.Services.TelerikReportService;
 
 namespace Report.Server.Controllers
@@ -35,7 +36,7 @@ namespace Report.Server.Controllers
             {
 
                 var categoriesJson = await _redisService.GetMerchantCategoriesAsync(merchantGuid);
-
+                
 
                 return Ok(categoriesJson);
             }
@@ -47,6 +48,7 @@ namespace Report.Server.Controllers
      
         }
         [HttpGet("merchant/{categoryId}/reports")]
+        [Authorize]
         public async Task<IActionResult> GetCategoryReports([FromRoute] string categoryId)
         {
 
