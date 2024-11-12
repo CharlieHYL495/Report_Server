@@ -102,4 +102,9 @@ public class MerchantData
 
     [JsonProperty("report_categories")]
     public List<string> ReportCategories { get; set; }
+
+    [JsonProperty("license_id")]
+    public int licenseId { get; set; }
+
+
 }
