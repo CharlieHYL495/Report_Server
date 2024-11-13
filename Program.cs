@@ -1,48 +1,28 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.Extensions.Options;
 using ServiceStack.Redis;
-using System.Text;
-using System.Security.Claims;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
-using Microsoft.AspNetCore.Identity;
-using Report.Server.Workers;
-using Reporting.Server.Services;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Report.Server.Services;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using ServiceStack;
+using Report.Server.Workers;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 从配置文件加载 JWT、Redis 和 Telerik 配置
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var redisConfig = builder.Configuration.GetSection("Redis");
-var reportsStorageSettings = builder.Configuration.GetSection("ReportsStorage").Get<ReportsStorageSettings>();
-var telerikReportOptions = builder.Configuration.GetSection("TelerikReportOptions").Get<TelerikReportOptions>();
-var timerInterval = builder.Configuration.GetValue<int>("TimerInterval");
-var maximumOrderWorkers = builder.Configuration.GetValue<int>("MaximumOrderWorkers");
+// 加载配置
+builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
+builder.Services.Configure<RedisKeysOptions>(builder.Configuration.GetSection("RedisKeys"));
+builder.Services.Configure<ReportsStorageSettings>(builder.Configuration.GetSection("ReportsStorage"));
+builder.Services.Configure<TimerIntervalSettings>(builder.Configuration.GetSection("TimerInterval"));
+builder.Services.Configure<WorkerSettings>(builder.Configuration.GetSection("MaximumOrderWorkers"));
 
-//配置 JWT 认证
+// 配置JWT认证
+var jwtSettings = builder.Configuration.GetSection("Jwt");
 var key = jwtSettings["Key"];
 var issuer = jwtSettings["Issuer"];
 var rsa = RSA.Create();
 rsa.ImportSubjectPublicKeyInfo(Convert.FromBase64String(key), out _);
-var rsaSecurityKey = new RsaSecurityKey(rsa);
 
-builder.Services.AddSingleton(rsaSecurityKey); 
-
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    })
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -51,43 +31,29 @@ builder.Services.AddAuthentication(options =>
             ValidateAudience = false,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = rsaSecurityKey, 
+            IssuerSigningKey = new RsaSecurityKey(rsa),
             ValidIssuer = issuer
         };
     });
 
+builder.Services.AddAuthorization();
 
-builder.Services.AddAuthorization(options =>
-{
-    options.FallbackPolicy = options.DefaultPolicy;
-});
-
-
-// 注入配置
-builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
-builder.Services.AddSingleton(reportsStorageSettings);
-
-// 配置 Redis 客户端
+// 配置Redis客户端
 var redisConnectionString = builder.Configuration["RedisConnString"];
-builder.Services.AddSingleton<IRedisClientsManager>(c => new RedisManagerPool(redisConnectionString));
+builder.Services.AddSingleton<IRedisClientsManager>(_ => new RedisManagerPool(redisConnectionString));
+
+// 注册服务
 builder.Services.AddScoped<RedisService>();
-
-
-// 注入其他服务
 builder.Services.AddScoped<TelerikReportService>();
 builder.Services.AddHostedService<ReportsHostedService>();
 
-// 如果 TimerInterval 和 MaximumOrderWorkers 被用作后台任务配置，注入它们
-builder.Services.AddSingleton(new TimerIntervalSettings { Interval = timerInterval });
-builder.Services.AddSingleton(new WorkerSettings { MaximumOrderWorkers = maximumOrderWorkers });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
-// 构建应用
 var app = builder.Build();
 
-// 配置 HTTP 请求管道
+// 配置HTTP请求管道
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -96,17 +62,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 app.UseHttpsRedirection();
-
-// 启用认证和授权
 app.UseAuthentication();
 app.UseAuthorization();
-
-
-// 映射控制器
 app.MapControllers();
-
-// 启动应用
 app.Run();
+
 
 // 配置类定义
 public class ReportsStorageSettings
@@ -119,7 +79,18 @@ public class TelerikReportOptions
     public string BaseUrl { get; set; }
     public string Username { get; set; }
     public string Password { get; set; }
+    public string CategoriesPath { get; set; }
+    public string TokenPath { get; set; }
+    public string ReportsByCategoryPath { get; set; }
+    public string ParametersPath { get; set; }
+    public string SavePath { get; set; }
 }
+public class RedisKeysOptions
+{
+    public string MerchantsKey { get; set; }
+    public string RedisKeyPrefix { get; set; }
+}
+
 
 public class TimerIntervalSettings
 {
@@ -132,4 +103,18 @@ public class WorkerSettings
 }
 
 
-
+//app.UseFileServer(new FileServerOptions
+//{
+//    FileProvider = new PhysicalFileProvider(
+//        Path.Combine(AppDb.path_root, "TelerikReport", "report")),
+//    RequestPath = "/report",
+//    EnableDirectoryBrowsing = true,
+//    StaticFileOptions =
+//    {
+//        ContentTypeProvider = provider,
+//        OnPrepareResponse = (c) =>
+//        {
+//            c.Context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+//        }
+//    }
+//});

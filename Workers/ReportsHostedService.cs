@@ -6,7 +6,6 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System;
-    using Reporting.Server.Services;
     using Report.Server.Services;
 
     public class ReportsHostedService : IHostedService, IDisposable

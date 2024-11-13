@@ -17,29 +17,42 @@
     using System.Configuration;
     using DocumentFormat.OpenXml.Bibliography;
     using Microsoft.Extensions.Options;
+    using Sentry.Protocol;
 
     public class TelerikReportService
     {
         private readonly string _baseUrl;
         private readonly string _username;
         private readonly string _password;
+        private readonly string _categoriesPath;
+        private readonly string _tokenPath;
+        private readonly string _reportByCategoryPath;
+        private readonly string _parametersPath;
+        private readonly string _savePath;
+        private readonly string _redisKeyPrefix;
         private readonly IRedisClientsManager _redisClientsManager;
 
-        public TelerikReportService(IOptions<TelerikReportOptions> options,
+        public TelerikReportService(IOptions<TelerikReportOptions> telerikOptions,
+            IOptions<RedisKeysOptions> redisOptions,
             IRedisClientsManager redisClientsManager)
         {
-            _baseUrl = options.Value.BaseUrl;
-            _username = options.Value.Username;
-            _password = options.Value.Password;
+            _baseUrl = telerikOptions.Value.BaseUrl;
+            _username = telerikOptions.Value.Username;
+            _password = telerikOptions.Value.Password;
+            _tokenPath = telerikOptions.Value.TokenPath;
+            _categoriesPath = telerikOptions.Value.CategoriesPath;
+            _reportByCategoryPath = telerikOptions.Value.ReportsByCategoryPath;
+            _parametersPath = telerikOptions.Value.ParametersPath;
+            _savePath = telerikOptions.Value.SavePath;
+            _redisKeyPrefix = redisOptions.Value.RedisKeyPrefix;
             _redisClientsManager = redisClientsManager;
         }
-
         public async Task<string> GetTokenAsync()
         {
             var token = new TelerikUserToken();
             try
             {
-                token = await _baseUrl.AppendPathSegment("token")
+                token = await _baseUrl.AppendPathSegment(_tokenPath)
                     .PostUrlEncodedAsync(new Dictionary<string, string>()
                     {
                         { "grant_type", "password" },
@@ -48,7 +61,7 @@
                     }).Result.GetJsonAsync<TelerikUserToken>();
                 Console.WriteLine(token?.access_token);
                 return token?.access_token;
-            
+
             }
             catch (FlurlHttpException ex)
             {
@@ -57,118 +70,50 @@
                 return null;
             }
         }
-
+        // get report categories and save them in redis and local file
         public async Task<IEnumerable<TelerikReportCategory>> GetReportCategoriesAsync(string token)
         {
             var result = await _baseUrl
-                .AppendPathSegment("api/reportserver/v2/categories")
+                .AppendPathSegment(_categoriesPath)
                 .WithOAuthBearerToken(token)
                 .GetJsonAsync<IEnumerable<TelerikReportCategory>>();
             await SaveCategoriesAsync(result, token);
             return result;
         }
-
-        public async Task<IEnumerable<TelerikReportInfo>> GetReportInfosByCategoryIdAsync(string token,
-            string categoryId)
-        {
-            var result = await _baseUrl
-                .AppendPathSegment($"api/reportserver/v2/categories/{categoryId}/reports")
-                .WithOAuthBearerToken(token)
-                .GetJsonAsync<IEnumerable<TelerikReportInfo>>();
-            await SaveReportsAsync(result, token);
-            return result;
-        }
-
-        public async Task<IEnumerable<TelerikReportInfo>> ReportInfosByCategoryIdAsync(string token, string categoryId)
+        // get reportInfos by category
+        private async Task<IEnumerable<TelerikReportInfo>> ReportInfosByCategoryIdAsync(string token, string categoryId)
         {
             return await _baseUrl
                 .WithOAuthBearerToken(token)
-                .AppendPathSegment($"api/reportserver/v2/categories/{categoryId}/reports")
+                .AppendPathSegment(string.Format(_reportByCategoryPath, categoryId))
                 .GetJsonAsync<IEnumerable<TelerikReportInfo>>();
         }
-
-        public async Task<TelerikReportDefinition> GetReportLatestRevisionAsync(string token, string reportId)
-        {
-            return await _baseUrl
-                .AppendPathSegment($"api/reportserver/v2/reports/{reportId}/revisions/latest")
-                .WithOAuthBearerToken(token)
-                .GetJsonAsync<TelerikReportDefinition>();
-        }
-
-        public async Task<IEnumerable<TelerikReportParameter>> GetReportParameters(string token, string reportId)
+        // get parameterInfos for each report
+        private async Task<IEnumerable<TelerikReportParameter>> ReportParametersAsync(string token, string reportId)
         {
             var result = await _baseUrl
-                .AppendPathSegment($"api/reportserver/v2/reports/{reportId}/parameters")
-                .WithOAuthBearerToken(token)
-                .GetJsonAsync<IEnumerable<TelerikReportParameter>>();
-            await SaveParametersAsync(result);
-            return result;
-        }
-
-        public async Task<IEnumerable<TelerikReportParameter>> ReportParameters(string token, string reportId)
-        {
-            var result = await _baseUrl
-                .AppendPathSegment($"api/reportserver/v2/reports/{reportId}/parameters")
+                .AppendPathSegment(string.Format(_parametersPath, reportId))
                 .WithOAuthBearerToken(token)
                 .GetJsonAsync<IEnumerable<TelerikReportParameter>>();
             return result;
         }
+        // main logic to save categories in redis and local file
 
-        public async Task SaveParametersAsync(IEnumerable<TelerikReportParameter> parameters)
+        private async Task SaveCategoriesAsync(IEnumerable<TelerikReportCategory> categories, string token)
         {
-            foreach (var parameter in parameters)
+            var tasks = categories.Select(async category =>
             {
-                var filePath = Path.Combine("C://Reports", parameter.Name);
-                var parameterJson = JsonConvert.SerializeObject(parameter);
-                await File.WriteAllTextAsync(filePath, parameterJson);
+                var reports = await ReportInfosByCategoryIdAsync(token, category.Id);
 
-                _redisClientsManager.GetClient().SetValue($"parameter:{parameter.Name}", parameterJson);
-            }
-        }
-
-        public async Task SaveCategoriesAsync(IEnumerable<TelerikReportCategory> categories, string token)
-        {
-
-
-
-            foreach (var category in categories)
-            {
-
-                var reportInfos = await ReportInfosByCategoryIdAsync(token, category.Id);
-                var reportsJson = JsonConvert.SerializeObject(reportInfos);
-
-                var reports = JsonConvert.DeserializeObject<List<TelerikReportInfo>>(reportsJson);
-
-                List<TelerikReportInfo> reportList = new List<TelerikReportInfo>();
-                foreach (TelerikReportInfo report in reports)
+                // Retrieve parameters for each report and embed them in the report object
+                var reportList = await Task.WhenAll(reports.Select(async report =>
                 {
-                    var parameters = await ReportParameters(token, report.Id);
-                    var parameterListsJson = JsonConvert.SerializeObject(parameters);
-                    var parameterList = JsonConvert.DeserializeObject<List<TelerikReportParameter>>(parameterListsJson);
+                    var parameters = await ReportParametersAsync(token, report.Id);
+                    report.Parameters = parameters.ToList();
+                    return report;
+                }));
 
-                    var reportsWithParameters = new TelerikReportInfo
-                    {
-                        Id = report.Id,
-                        Name = report.Name,
-                        CategoryId = report.CategoryId,
-                        Description = report.Description,
-                        CreatedBy = report.CreatedBy,
-                        LockedBy = report.LockedBy,
-                        Extension = report.Extension,
-                        IsDraft = report.IsDraft,
-                        IsFavorite = report.IsFavorite,
-                        LastRevisionId = report.LastRevisionId,
-                        CreatedByName = report.CreatedByName,
-                        LockedByName = report.CreatedByName,
-                        LastModifiedDate = report.LastModifiedDate,
-                        LastModifiedDateUtc = report.LastModifiedDateUtc,
-                        CanEdit = report.CanEdit,
-                        CanView = report.CanView,
-                        Parameters = parameterList
-                    };
-                    reportList.Add(reportsWithParameters);
-                }
-
+                // Create a new object with category and reports
                 var categoryWithReports = new
                 {
                     CategoryId = category.Id,
@@ -176,115 +121,46 @@
                     Reports = reportList
                 };
 
-
+                // Save to Redis
                 var categoryJson = JsonConvert.SerializeObject(categoryWithReports, Formatting.Indented);
+                _redisClientsManager.GetClient().SetValue($"{_redisKeyPrefix}{category.Id}", categoryJson);
 
+                // Save to local file system
+                await SaveCategoryToFileAsync(token);
+            });
 
-                _redisClientsManager.GetClient().SetValue($"wyo:report_server:reports:{category.Id}", categoryJson); // 保存到 Redis
-                var reportFileName = $"{category.Name}.json";
-
-
-
-                var reportFilePath = Path.Combine("C://Reports", reportFileName);
-
-                await File.WriteAllTextAsync(reportFilePath, categoryJson);
-            }
-
+            await Task.WhenAll(tasks);
         }
 
-        public async Task SaveReportsAsync(IEnumerable<TelerikReportInfo> reports, string token)
+
+        private async Task SaveCategoryToFileAsync(string token)
         {
-
-            List<TelerikReportInfo> reportList = new List<TelerikReportInfo>();
-
-            foreach (var report in reports)
-            {
-                var parameters = await ReportParameters(token, report.Id);
-                var parameterListsJson = JsonConvert.SerializeObject(parameters);
-                var parameterList = JsonConvert.DeserializeObject<List<TelerikReportParameter>>(parameterListsJson);
-
-                var reportsWithParameters = new TelerikReportInfo
-                {
-                    Id = report.Id,
-                    Name = report.Name,
-                    CategoryId = report.CategoryId,
-                    Description = report.Description,
-                    CreatedBy = report.CreatedBy,
-                    LockedBy = report.LockedBy,
-                    Extension = report.Extension,
-                    IsDraft = report.IsDraft,
-                    IsFavorite = report.IsFavorite,
-                    LastRevisionId = report.LastRevisionId,
-                    CreatedByName = report.CreatedByName,
-                    LockedByName = report.CreatedByName,
-                    LastModifiedDate = report.LastModifiedDate,
-                    LastModifiedDateUtc = report.LastModifiedDateUtc,
-                    CanEdit = report.CanEdit,
-                    CanView = report.CanView,
-                    Parameters = parameterList
-                };
-                reportList.Add(reportsWithParameters);
-
-
-
-            }
-
-
-            foreach (var report in reportList)
-            {
-                var reportJson = JsonConvert.SerializeObject(report, Formatting.Indented);
-                _redisClientsManager.GetClient().SetValue($"{report.Id}", reportJson); 
-                var reportFileName = $"{report.Name}.json";
-
-                var reportFilePath = Path.Combine("C://Reports", reportFileName);
-
-                await File.WriteAllTextAsync(reportFilePath, reportJson);
-            }
+            var response = _baseUrl
+                .AppendPathSegment(_categoriesPath)
+                .WithOAuthBearerToken(token);
+            var fileBytes = await response.Content.ReadAsByteArrayAsync();
+            var filePath = Path.Combine(_savePath);
+            await File.WriteAllBytesAsync(filePath, fileBytes);
         }
 
 
-        public class TelerikReportsResponse
-        {
-            public List<TelerikReportInfo> ReportInfos { get; set; } = new List<TelerikReportInfo>();
-            public List<string> Errors { get; set; } = new List<string>();
-        }
-
-        public class TelerikCategoriesResponse
-        {
-            public List<TelerikReportCategory> Categories { get; set; } = new List<TelerikReportCategory>();
-            public List<string> Errors { get; set; } = new List<string>();
-        }
 
 
         public class TelerikUserToken
         {
             public string access_token { get; set; }
-            public string token_type { get; set; }
-            public int expires_in { get; set; }
-            public string userName { get; set; }
 
             [JsonProperty(".issued")] public string Issued { get; set; }
 
             [JsonProperty(".expires")] public string Expires { get; set; }
         }
 
-        public class Token
-        {
-            public string token { get; set; }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
         public class TelerikReportCategory
         {
             public string Id { get; set; }
             public string Name { get; set; }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
         public class TelerikReportInfo
         {
             public string Id { get; set; }
@@ -306,19 +182,6 @@
             public List<TelerikReportParameter> Parameters { get; set; }
         }
 
-        /// <summary>
-        /// 
-        /// </summary>
-        public class TelerikReportDefinition
-        {
-            public string Id { get; set; }
-            public byte[] Content { get; set; }
-            public string Extension { get; set; }
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
         public class TelerikReportParameter
         {
             public string Name { get; set; }
@@ -333,8 +196,10 @@
             public bool AutoRefresh { get; set; }
         }
 
-
-
+        public class Token
+        {
+            public string token { get; set; }
+        }
 
     }
 }
