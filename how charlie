@@ -1,0 +1,24 @@
+* [33m03d5837[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mcharlie[m[33m, [m[1;31morigin/charlie[m[33m)[m fix:simplify Services and Controllers delete:unnessary methods. add:BaseController
+* [33m8d88bc2[m fix:simplify code in ReportsController
+* [33mb9cb1a1[m[33m ([m[1;32mmaster[m[33m)[m add:class Attribute"licenseId" in MerchantData of RedisService.cs fix: limit role who owns value contains licensdId in merchant to access api
+* [33maf990c3[m change: SDK 8.0.403 to 6.0.427
+* [33mcfc23bd[m fix:Dockerfile
+* [33mc5b678d[m fix:Dockerfile add:NuGet.Congig
+* [33mf4e4932[m fix:1,change ImportRSAPublicKey() to ImportSubjectPublicKeyInfo(which apply to  X.509 and RSA public key) 2,directly inject rsaSecurityKey inside AddJwtBearer as IssuerSigningKey instead of delaying inject IssuerSigningKey by IConfigureOptions<JwtBearerOptions>
+* [33me0379fd[m fix:transfer List<String> to Json List
+* [33m5d1d535[m change:JWT token works now
+* [33m9021741[m ADD:1,new method in the RedisService.Can grab catagory in the RedisServer.2,new api in the ReportsController，invoke the new method in the RedisService.
+* [33mcdb5792[m change:the name in Redis
+* [33m7b53ef8[m fix:https://localhost:44384/api/v1/merchants/{merchantGuid}/reports now can correctly grab data
+* [33m7f90c2e[m change ：port 7197 to 44384, tempo cancell the validation
+* [33m4796191[m fix:Jwt Key. change : issuer and audience to False
+* [33m0a78d07[m fix:uncomment the codes of JWT token in Program.cs，now API controller methods need token to be access.Waiting for the updated Token
+* [33m655707d[m fix:invoke the RedisService correctly. add:method that get the Merchants datas from Redis server
+* [33mca8dbb0[m fix:TelerikReportService存进本地的方法错误
+* [33m5a199aa[m fix: redis conn string
+* [33m21d5061[m test
+* [33m39c626d[m version1.1
+* [33m8d97e96[m version1.0
+* [33mfd8b635[m version1.0
+* [33m1035987[m version1.0
+* [33m5620eac[m init commit

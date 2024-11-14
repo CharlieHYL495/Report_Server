@@ -62,5 +62,4 @@ public class MerchantData
     [JsonProperty("license_id")]
     public int licenseId { get; set; }
 
-
 }

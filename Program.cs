@@ -5,13 +5,15 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using Report.Server.Services;
 using Report.Server.Workers;
+using Microsoft.Extensions.FileProviders;
+using Report.Server;
+using Microsoft.AspNetCore.StaticFiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // 加载配置
 builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
 builder.Services.Configure<RedisKeysOptions>(builder.Configuration.GetSection("RedisKeys"));
-builder.Services.Configure<ReportsStorageSettings>(builder.Configuration.GetSection("ReportsStorage"));
 builder.Services.Configure<TimerIntervalSettings>(builder.Configuration.GetSection("TimerInterval"));
 builder.Services.Configure<WorkerSettings>(builder.Configuration.GetSection("MaximumOrderWorkers"));
 
@@ -52,6 +54,28 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
 var app = builder.Build();
+var rootPath = AppContext.BaseDirectory;
+Location.RootPath = rootPath;
+var reportsPath = Path.Combine(rootPath, "reports");
+if (!Directory.Exists(reportsPath)) Directory.CreateDirectory(reportsPath);
+var provider = new FileExtensionContentTypeProvider();
+provider.Mappings[".html"] = "text/html";
+provider.Mappings[".pdf"] = "application/pdf";
+provider.Mappings[".xlsx"] = "application/vnd.ms-excel";
+app.UseFileServer(new FileServerOptions
+{
+    FileProvider = new PhysicalFileProvider(reportsPath),
+    RequestPath = "/reports",
+    EnableDirectoryBrowsing = true,
+    StaticFileOptions =
+    {
+        ContentTypeProvider = provider,
+        OnPrepareResponse = (c) =>
+        {
+            c.Context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+        }
+    }
+});
 
 // 配置HTTP请求管道
 if (app.Environment.IsDevelopment())
@@ -68,11 +92,6 @@ app.MapControllers();
 app.Run();
 
 
-// 配置类定义
-public class ReportsStorageSettings
-{
-    public string FolderPath { get; set; }
-}
 
 public class TelerikReportOptions
 {
@@ -83,7 +102,7 @@ public class TelerikReportOptions
     public string TokenPath { get; set; }
     public string ReportsByCategoryPath { get; set; }
     public string ParametersPath { get; set; }
-    public string SavePath { get; set; }
+    public string ReportLatestPath { get; set; }
 }
 public class RedisKeysOptions
 {
@@ -102,19 +121,3 @@ public class WorkerSettings
     public int MaximumOrderWorkers { get; set; }
 }
 
-
-//app.UseFileServer(new FileServerOptions
-//{
-//    FileProvider = new PhysicalFileProvider(
-//        Path.Combine(AppDb.path_root, "TelerikReport", "report")),
-//    RequestPath = "/report",
-//    EnableDirectoryBrowsing = true,
-//    StaticFileOptions =
-//    {
-//        ContentTypeProvider = provider,
-//        OnPrepareResponse = (c) =>
-//        {
-//            c.Context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-//        }
-//    }
-//});

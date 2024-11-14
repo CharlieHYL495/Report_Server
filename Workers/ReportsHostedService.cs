@@ -62,10 +62,10 @@
 
             if (!string.IsNullOrEmpty(token))
             {
-                var categories = await telerikService.GetReportCategoriesAsync(token);
-             
-
-                _logger.LogInformation("Fetched report categories successfully.");
+                await telerikService.SaveCategoryToRedisAsync(token);
+                _logger.LogInformation("Saved report categories to redis successfully.");
+                await telerikService.SaveReportsToLocalFilesAsync(token);
+                _logger.LogInformation("Saved reports to local file successfully.");
             }
             else
             {
