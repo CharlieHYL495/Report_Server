@@ -154,7 +154,7 @@
         private async Task<TelerikReportDefinition> GetReportLatestRevisionAsync(string token, string reportId)
         {
             return await _baseUrl
-                .AppendPathSegment(string.Format(_reportDefinitionPath))
+                .AppendPathSegment(string.Format(_reportDefinitionPath,reportId))
                 .WithOAuthBearerToken(token)
                 .GetJsonAsync<TelerikReportDefinition>();
         }
