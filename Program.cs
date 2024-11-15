@@ -54,7 +54,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 
 var app = builder.Build();
-var rootPath = AppContext.BaseDirectory;
+var rootPath = @"C:\";
 Location.RootPath = rootPath;
 var reportsPath = Path.Combine(rootPath, "reports");
 if (!Directory.Exists(reportsPath)) Directory.CreateDirectory(reportsPath);
