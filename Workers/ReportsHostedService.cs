@@ -15,12 +15,17 @@
         private readonly ILogger<ReportsHostedService> _logger;
         private readonly object Locker = new object();
         private IServiceProvider Services { get; }
-        private Timer _timer;
+        private Timer _timer = null!;
         private bool _running;
-        private Task _currentTask;
+        private Task _currentTask = Task.CompletedTask;
 
-        public ReportsHostedService(IServiceProvider services, IConfiguration configuration, ILogger<ReportsHostedService>logger
-            )
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="services"></param>
+        /// <param name="configuration"></param>
+        /// <param name="logger"></param>
+        public ReportsHostedService(IServiceProvider services, IConfiguration configuration, ILogger<ReportsHostedService>logger)
         {
             Services = services;
             _logger = logger;
@@ -31,14 +36,14 @@
 
         public Task StartAsync(CancellationToken stoppingToken)
         {
-            _logger.LogDebug($@"{nameof(ReportsHostedService)} is running.");
+            _logger.LogInformation($@"{nameof(ReportsHostedService)} is running.");
 
             _timer = new Timer(Callback, null, 0, _timerInterval);
 
             return Task.CompletedTask;
         }
 
-        private void Callback(object state)
+        private void Callback(object? state)
         {
             if (_running) return;
 
@@ -57,20 +62,42 @@
         {
             using var scope = Services.CreateScope();
             var telerikService = scope.ServiceProvider.GetRequiredService<TelerikReportService>();
-            var token = await telerikService.GetTokenAsync();
-            Console.WriteLine(token);
+            
+            try 
+            {
+                var token = await telerikService.GetTokenAsync();
+                Console.WriteLine(token);
 
-            if (!string.IsNullOrEmpty(token))
-            {
-                await telerikService.SaveReportsToLocalFilesAsync(token);
-                _logger.LogInformation("Saved reports to local file successfully.");
-                await telerikService.SaveCategoryToRedisAsync(token);
-                _logger.LogInformation("Saved report categories to redis successfully.");
-         
+                if (!string.IsNullOrEmpty(token))
+                {
+                    try 
+                    {
+                        await telerikService.SaveReportsToLocalFilesAsync(token);
+                        _logger.LogInformation("Saved reports to local file successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to save reports to local files");
+                    }
+
+                    try 
+                    {
+                        await telerikService.SaveCategoryToRedisAsync(token);
+                        _logger.LogInformation("Saved report categories to redis successfully.");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to save categories to redis");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to fetch token for Telerik Report Server.");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning("Failed to fetch token for Telerik Report Server.");
+                _logger.LogError(ex, "An error occurred while processing reports");
             }
             lock (Locker)
             {
