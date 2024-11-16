@@ -6,7 +6,7 @@ namespace Report.Server
         public static string RootPath = "";
         public static string ReportPath(string file)
         {
-            return RootPath + $@"/Reports/{file}";
+            return RootPath + $@"/reports/{file}";
         }
     }
 }
