@@ -30,11 +30,13 @@
         private readonly string _parametersPath;
         private readonly string _redisKeyPrefix;
         private readonly string _reportDefinitionPath;
+        private readonly ILogger<TelerikReportService> _logger;
         private readonly IRedisClientsManager _redisClientsManager;
 
         public TelerikReportService(IOptions<TelerikReportOptions> telerikOptions,
             IOptions<RedisKeysOptions> redisOptions,
-            IRedisClientsManager redisClientsManager)
+            IRedisClientsManager redisClientsManager,
+            ILogger<TelerikReportService> logger)
         {
             _baseUrl = telerikOptions.Value.BaseUrl;
             _username = telerikOptions.Value.Username;
@@ -45,34 +47,88 @@
             _parametersPath = telerikOptions.Value.ParametersPath;
             _reportDefinitionPath = telerikOptions.Value.ReportLatestPath;
             _redisKeyPrefix = redisOptions.Value.RedisKeyPrefix;
-            _redisClientsManager = redisClientsManager;
+            _redisClientsManager = redisClientsManager; 
+            _logger = logger;
         }
 
         // Save reports to local files
+        //public async Task SaveReportsToLocalFilesAsync(string token)
+        //{
+        //    var categories = await GetCategoriesAsync(token);
+
+        //    var tasks = categories.Select(async category =>
+        //    {
+        //        var reportList = await GetReportListWithParametersAsync(token, category.Id);
+        //        await SaveReportsToLocalAsync(token, reportList);
+        //    });
+
+        //    await Task.WhenAll(tasks);
+        //}
         public async Task SaveReportsToLocalFilesAsync(string token)
         {
-            var categories = await GetCategoriesAsync(token);
-
-            var tasks = categories.Select(async category =>
+            try
             {
-                var reportList = await GetReportListWithParametersAsync(token, category.Id);
-                await SaveReportsToLocalAsync(token, reportList);
-            });
+                var categories = await GetCategoriesAsync(token);
 
-            await Task.WhenAll(tasks);
+                var tasks = categories.Select(async category =>
+                {
+                    try
+                    {
+                        var reportList = await GetReportListWithParametersAsync(token, category.Id);
+                        await SaveReportsToLocalAsync(token, reportList);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error occurred while processing category {category.Id}: {category.Name}");
+                    }
+                });
+
+                await Task.WhenAll(tasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while saving reports to local files.");
+            }
         }
 
         // Method Logic to save reports to local files
+        //private async Task SaveReportsToLocalAsync(string token, List<TelerikReportInfo> reportList)
+        //{
+        //    var saveTasks = reportList.Select(async report =>
+        //    {
+        //        var reportDefinition = await GetReportLatestRevisionAsync(token, report.Id);
+        //        var filePath = Server.Location.ReportPath($"{report.Name}.{reportDefinition.Extension}");
+        //        await File.WriteAllBytesAsync(filePath, reportDefinition.Content);
+        //    });
+
+        //    await Task.WhenAll(saveTasks);
+        //}
         private async Task SaveReportsToLocalAsync(string token, List<TelerikReportInfo> reportList)
         {
-            var saveTasks = reportList.Select(async report =>
+            try
             {
-                var reportDefinition = await GetReportLatestRevisionAsync(token, report.Id);
-                var filePath = Server.Location.ReportPath($"{report.Name}.{reportDefinition.Extension}");
-                await File.WriteAllBytesAsync(filePath, reportDefinition.Content);
-            });
+                var saveTasks = reportList.Select(async report =>
+                {
+                    try
+                    {
+                        var reportDefinition = await GetReportLatestRevisionAsync(token, report.Id);
+                        var filePath = Server.Location.ReportPath($"{report.Name}.{reportDefinition.Extension}");
 
-            await Task.WhenAll(saveTasks);
+                        await File.WriteAllBytesAsync(filePath, reportDefinition.Content);
+                        _logger.LogInformation($"Report saved successfully: {filePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Error occurred while saving report {report.Id}: {report.Name}");
+                    }
+                });
+
+                await Task.WhenAll(saveTasks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred while saving reports to local.");
+            }
         }
 
 
