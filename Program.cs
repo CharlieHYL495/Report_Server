@@ -89,6 +89,8 @@ app.UseRouting();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapControllers();
+app.Run();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapGet("/", async context =>

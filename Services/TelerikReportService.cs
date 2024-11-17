@@ -52,18 +52,7 @@
         }
 
         //Save reports to local files
-        //public async Task SaveReportsToLocalFilesAsync(string token)
-        //{
-        //    var categories = await GetCategoriesAsync(token);
 
-        //    var tasks = categories.Select(async category =>
-        //    {
-        //        var reportList = await GetReportListWithParametersAsync(token, category.Id);
-        //        await SaveReportsToLocalAsync(token, reportList);
-        //    });
-
-        //    await Task.WhenAll(tasks);
-        //}
         public async Task SaveReportsToLocalFilesAsync(string token)
         {
             try
@@ -92,17 +81,7 @@
         }
 
         // Method Logic to save reports to local files
-        //private async Task SaveReportsToLocalAsync(string token, List<TelerikReportInfo> reportList)
-        //{
-        //    var saveTasks = reportList.Select(async report =>
-        //    {
-        //        var reportDefinition = await GetReportLatestRevisionAsync(token, report.Id);
-        //        var filePath = Server.Location.ReportPath($"{report.Name}.{reportDefinition.Extension}");
-        //        await File.WriteAllBytesAsync(filePath, reportDefinition.Content);
-        //    });
 
-        //    await Task.WhenAll(saveTasks);
-        //}
         private async Task SaveReportsToLocalAsync(string token, List<TelerikReportInfo> reportList)
         {
             try

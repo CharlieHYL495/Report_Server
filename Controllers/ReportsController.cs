@@ -29,11 +29,22 @@ namespace Report.Server.Controllers
         {
             if (string.IsNullOrEmpty(merchantGuid)) return BadRequest(new { message = "Invalid Merchant Id" });
             var merchantData = await _redisService.GetMerchantInfoAsync(merchantGuid);
-            if (string.IsNullOrEmpty(merchantData.MerchantGuid)) return BadRequest(new { message = "Invalid Merchant Id" });
-            if (!HasMerchantAccess(merchantData.licenseId)) return BadRequest(new { message = "No access to the resources" });
+            if (string.IsNullOrEmpty(merchantData.MerchantGuid))
+                return BadRequest(new { message = "Invalid Merchant Id" });
+            if (!HasMerchantAccess(merchantData.licenseId))
+                return BadRequest(new { message = "No access to the resources" });
             var categoriesJson = await _redisService.GetMerchantCategoriesAsync(merchantGuid);
             return Ok(categoriesJson);
 
+        }
+        [HttpGet("Telerik")]
+        [Authorize]
+        public async Task<IActionResult> GetTelerikReports()
+        {
+            var TelerikData = await _redisService.GetAllDataAsync();
+            return TelerikData == null || !TelerikData.Any()
+                ? NotFound(new { Message = "No Telerik data found in Redis." })
+                : Ok(TelerikData);
         }
     }
 

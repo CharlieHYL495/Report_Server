@@ -13,6 +13,7 @@ using static Report.Server.Services.TelerikReportService;
 
 namespace Report.Server.Services
 {
+    using Microsoft.AspNetCore.Http;
     using Microsoft.Extensions.Options;
 
     public class RedisService
@@ -48,8 +49,23 @@ namespace Report.Server.Services
             );
             return categories.ToList();
         }
+
+        public async Task<List<object>> GetAllDataAsync()
+        {
+            await using var redisClient = await _redisClientsManager.GetClientAsync();
+            var keys = await redisClient.GetAllKeysAsync();
+
+            var allData = (await Task.WhenAll(keys.Select(async key =>
+                JSON.parse(await redisClient.GetValueAsync(key)))));
+            return allData.ToList();
+        }
+
+
+
     }
 }
+
+
 
 
 public class MerchantData
