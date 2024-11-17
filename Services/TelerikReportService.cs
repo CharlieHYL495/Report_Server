@@ -112,7 +112,7 @@
                     try
                     {
                         var reportDefinition = await GetReportLatestRevisionAsync(token, report.Id);
-                        var filePath = Server.Location.ReportPath($"{report.Name}.{reportDefinition.Extension}");
+                        var filePath = Server.Location.ReportPath($"{report.Name}{reportDefinition.Extension}");
 
                         await File.WriteAllBytesAsync(filePath, reportDefinition.Content);
                         _logger.LogInformation($"Report saved successfully: {filePath}");
