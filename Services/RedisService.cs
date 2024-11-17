@@ -18,11 +18,13 @@ namespace Report.Server.Services
     public class RedisService
     {
         private readonly IRedisClientsManager _redisClientsManager;
-        private readonly String _merchantsKey;
+        private readonly string _merchantsKey;
+        private readonly string _redisKeyPrefix;
 
         public RedisService(IRedisClientsManager redisClientsManager, IOptions<RedisKeysOptions> redisOptions)
         {
             _redisClientsManager = redisClientsManager;
+            _redisKeyPrefix = redisOptions.Value.RedisKeyPrefix;
             _merchantsKey = redisOptions.Value.MerchantsKey;
         }
 
@@ -41,13 +43,12 @@ namespace Report.Server.Services
             var categories = await Task.WhenAll(
                 merchant.ReportCategories.Select(async category =>
                 {
-                    return JSON.parse(await client.GetValueAsync(category));
+                    return JSON.parse(await client.GetValueAsync($"{_redisKeyPrefix}{category}"));
                 })
             );
             return categories.ToList();
         }
-        
-}
+    }
 }
 
 

@@ -51,7 +51,7 @@
             _logger = logger;
         }
 
-        // Save reports to local files
+        //Save reports to local files
         //public async Task SaveReportsToLocalFilesAsync(string token)
         //{
         //    var categories = await GetCategoriesAsync(token);
@@ -154,13 +154,16 @@
             await Task.WhenAll(tasks);
         }
         // Method logic to save category data to Redis
+ 
         private void SaveToRedis(IRedisClient redisClient, string categoryId, object categoryWithReports)
         {
+
             var categoryJson = JsonConvert.SerializeObject(categoryWithReports, Formatting.Indented);
             redisClient.SetValue($"{_redisKeyPrefix}{categoryId}", categoryJson);
         }
+
         //Get token
-        public async Task<string> GetTokenAsync()
+            public async Task<string> GetTokenAsync()
         {
             var token = new TelerikUserToken();
             try
