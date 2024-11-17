@@ -8,6 +8,7 @@ using Report.Server.Workers;
 using Microsoft.Extensions.FileProviders;
 using Report.Server;
 using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,8 +89,15 @@ app.UseRouting();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
-app.MapControllers();
-app.Run();
+app.UseEndpoints(endpoints =>
+{
+    endpoints.MapGet("/", async context =>
+    {
+        await context.Response.WriteAsync("Report Server Is Running...");
+    });
+    endpoints.MapControllers();
+});
+app.Run("http://*:80");
 
 
 
