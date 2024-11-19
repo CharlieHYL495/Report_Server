@@ -8,7 +8,7 @@ using Telerik.Reporting.Services.AspNetCore;
 namespace Report.Server.Controllers
 {
     [ApiController]
-    [Route("api/v1")]
+    [Route("api/v1/telerik")]
     public class TelerikReportController : ReportsControllerBase
     {
         public TelerikReportController(IReportServiceConfiguration reportServiceConfiguration)
