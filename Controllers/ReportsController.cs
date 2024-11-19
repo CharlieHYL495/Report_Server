@@ -37,15 +37,7 @@ namespace Report.Server.Controllers
             return Ok(categoriesJson);
 
         }
-        [HttpGet("Telerik")]
-        [Authorize]
-        public async Task<IActionResult> GetTelerikReports()
-        {
-            var TelerikData = await _redisService.GetAllDataAsync();
-            return TelerikData == null || !TelerikData.Any()
-                ? NotFound(new { Message = "No Telerik data found in Redis." })
-                : Ok(TelerikData);
-        }
+       
     }
 
 
