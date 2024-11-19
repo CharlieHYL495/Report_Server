@@ -9,8 +9,12 @@ using Microsoft.Extensions.FileProviders;
 using Report.Server;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.SignalR;
+using Telerik.Reporting.Cache.File;
+using Telerik.Reporting.Services;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers().AddNewtonsoftJson();
 
 // 加载配置
 builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
@@ -49,9 +53,26 @@ builder.Services.AddSingleton<IRedisClientsManager>(_ => new RedisManagerPool(re
 builder.Services.AddScoped<RedisService>();
 builder.Services.AddScoped<TelerikReportService>();
 builder.Services.AddHostedService<ReportsHostedService>();
+builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
+{
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+    return new ReportServiceConfiguration
+    {
+        Storage = new FileStorage(), 
+        ReportSourceResolver = new UriReportSourceResolver(
+            Path.Combine(env.ContentRootPath, "Reports"))
+    };
+});
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Your API", Version = "v1" });
+    c.DocInclusionPredicate((docName, apiDesc) =>
+    {
+        return !apiDesc.ActionDescriptor.DisplayName.Contains("GetResource");
+    });
+});
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -90,7 +111,6 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.Run();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapGet("/", async context =>
