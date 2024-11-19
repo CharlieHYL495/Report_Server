@@ -18,6 +18,7 @@
     <PackageReference Include="ServiceStack.Redis" Version="6.11.0" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.16" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Telerik.Reporting" Version="15.2.21.1125" />
     <PackageReference Include="Telerik.Reporting.OpenXmlRendering" Version="15.2.21.1125" />
     <PackageReference Include="Telerik.Reporting.Services.AspNetCore" Version="15.2.21.1125" />
     <PackageReference Include="Telerik.Reporting.WebServiceDataSource" Version="15.2.21.1125" />
