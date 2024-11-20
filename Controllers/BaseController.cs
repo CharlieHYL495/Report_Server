@@ -1,8 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Report.Server.Controllers
 {
     [ApiController]
+    [EnableCors]
     public class BaseController : ControllerBase
     {
         protected bool HasMerchantAccess(int licenseId)

@@ -58,6 +58,29 @@ builder.Services.AddSingleton<IReportServiceConfiguration>(_ => new ReportServic
     ReportSourceResolver = new UriReportSourceResolver() 
 });
 
+builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
+{
+    b
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .WithOrigins(
+            "http://localhost:8080",
+            "http://localhost:8100",
+            "http://localhost:5173",
+            "https://cloudpos.posx.ai",
+            "https://xpos-app.revopos.io",
+            "https://connect.revopos.io",
+            "http://localhost:5050",
+            "http://localhost:5005",
+            "https://m.wyo.is",
+            "https://uniapp.revopos.io",
+            "https://wyo-crm.revopos.io",
+            "https://dashboard.wyocrm.com",
+            "http://localhost:3000",
+            "capacitor://localhost"
+        );
+}));
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -68,6 +91,8 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.AddControllers().AddNewtonsoftJson();
+
+
 
 var app = builder.Build();
 var rootPath = AppContext.BaseDirectory;
@@ -102,6 +127,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 app.UseHttpsRedirection();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
