@@ -14,7 +14,6 @@ using Telerik.Reporting.Services;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddControllers().AddNewtonsoftJson();
 
 // 加载配置
 builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
@@ -53,27 +52,22 @@ builder.Services.AddSingleton<IRedisClientsManager>(_ => new RedisManagerPool(re
 builder.Services.AddScoped<RedisService>();
 builder.Services.AddScoped<TelerikReportService>();
 builder.Services.AddHostedService<ReportsHostedService>();
-builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
+builder.Services.AddSingleton<IReportServiceConfiguration>(_ => new ReportServiceConfiguration
 {
-    var env = sp.GetRequiredService<IWebHostEnvironment>();
-    return new ReportServiceConfiguration
-    {
-        Storage = new FileStorage(), 
-        ReportSourceResolver = new UriReportSourceResolver(
-            Path.Combine(env.ContentRootPath, "Reports"))
-    };
+    Storage = new FileStorage(),
+    ReportSourceResolver = new UriReportSourceResolver() 
 });
+
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Your API", Version = "v1" });
     c.DocInclusionPredicate((docName, apiDesc) =>
     {
         return !apiDesc.ActionDescriptor.DisplayName.Contains("GetResource");
     });
 });
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddNewtonsoftJson();
 
 var app = builder.Build();
 var rootPath = AppContext.BaseDirectory;
