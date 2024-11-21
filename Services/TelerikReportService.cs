@@ -68,6 +68,7 @@
                     }
                     catch (Exception ex)
                     {
+                        SentrySdk.CaptureException(ex);
                         _logger.LogError(ex, $"Error occurred while processing category {category.Id}: {category.Name}");
                     }
                 });
@@ -76,6 +77,7 @@
             }
             catch (Exception ex)
             {
+                SentrySdk.CaptureException(ex);
                 _logger.LogError(ex, "An error occurred while saving reports to local files.");
             }
         }
@@ -98,6 +100,7 @@
                     }
                     catch (Exception ex)
                     {
+                        SentrySdk.CaptureException(ex);
                         _logger.LogError(ex, $"Error occurred while saving report {report.Id}: {report.Name}");
                     }
                 });
@@ -106,6 +109,7 @@
             }
             catch (Exception ex)
             {
+                SentrySdk.CaptureException(ex);
                 _logger.LogError(ex, "An error occurred while saving reports to local.");
             }
         }

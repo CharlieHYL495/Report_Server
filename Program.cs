@@ -20,6 +20,7 @@ builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSectio
 builder.Services.Configure<RedisKeysOptions>(builder.Configuration.GetSection("RedisKeys"));
 builder.Services.Configure<TimerIntervalSettings>(builder.Configuration.GetSection("TimerInterval"));
 builder.Services.Configure<WorkerSettings>(builder.Configuration.GetSection("MaximumOrderWorkers"));
+builder.Services.Configure<SentryOptions>(builder.Configuration.GetSection("Sentry"));
 
 // 配置JWT认证
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -80,6 +81,16 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
             "capacitor://localhost"
         );
 }));
+//Sentry
+builder.WebHost.UseSentry(options =>
+{
+    var sentryConfig = builder.Configuration.GetSection("Sentry").Get<SentryOptions>();
+    options.Dsn = sentryConfig.Dsn;
+    options.TracesSampleRate = sentryConfig.TracesSampleRate;
+#if DEBUG
+    options.Debug = sentryConfig.Debug;
+#endif
+});
 
 
 builder.Services.AddEndpointsApiExplorer();
@@ -169,5 +180,11 @@ public class TimerIntervalSettings
 public class WorkerSettings
 {
     public int MaximumOrderWorkers { get; set; }
+}
+public class SentryOptions
+{
+    public string Dsn { get; set; }
+    public double TracesSampleRate { get; set; }
+    public bool Debug { get; set; }
 }
 
