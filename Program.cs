@@ -56,12 +56,25 @@ builder.Services.AddHostedService<ReportsHostedService>();
 builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
 {
     var env = sp.GetRequiredService<IWebHostEnvironment>();
+
     return new ReportServiceConfiguration
     {
         Storage = new FileStorage(),
         ReportSourceResolver = new UriReportSourceResolver(
             Path.Combine(env.ContentRootPath, "Reports"))
     };
+});
+//Sentry
+builder.WebHost.UseSentry(options =>
+{
+    var sentryConfig = builder.Configuration.GetSection("Sentry").Get<SentryOptions>();
+
+    options.Dsn = sentryConfig.Dsn;
+
+    options.TracesSampleRate = sentryConfig.TracesSampleRate;
+#if DEBUG
+    options.Debug = sentryConfig.Debug;
+#endif
 });
 
 
@@ -87,16 +100,12 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
             "capacitor://localhost"
         );
 }));
-//Sentry
-builder.WebHost.UseSentry(options =>
-{
-    var sentryConfig = builder.Configuration.GetSection("Sentry").Get<SentryOptions>();
-    options.Dsn = sentryConfig.Dsn;
-    options.TracesSampleRate = sentryConfig.TracesSampleRate;
-#if DEBUG
-    options.Debug = sentryConfig.Debug;
-#endif
-});
+
+builder.Services.AddLogging(); // 如果有日志依赖
+builder.Logging.AddDebug();
+builder.Logging.AddConsole();
+
+
 
 
 builder.Services.AddEndpointsApiExplorer();
