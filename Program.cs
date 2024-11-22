@@ -53,11 +53,17 @@ builder.Services.AddSingleton<IRedisClientsManager>(_ => new RedisManagerPool(re
 builder.Services.AddScoped<RedisService>();
 builder.Services.AddScoped<TelerikReportService>();
 builder.Services.AddHostedService<ReportsHostedService>();
-builder.Services.AddSingleton<IReportServiceConfiguration>(_ => new ReportServiceConfiguration
+builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
 {
-    Storage = new FileStorage(),
-    ReportSourceResolver = new UriReportSourceResolver() 
+    var env = sp.GetRequiredService<IWebHostEnvironment>();
+    return new ReportServiceConfiguration
+    {
+        Storage = new FileStorage(),
+        ReportSourceResolver = new UriReportSourceResolver(
+            Path.Combine(env.ContentRootPath, "Reports"))
+    };
 });
+
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
 {
