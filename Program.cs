@@ -15,6 +15,15 @@ using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.WebHost.UseSentry(o =>
+{
+    o.Dsn = "https://64d9f60bba79e9d6f43ebf45d1cb01ea@o102090.ingest.us.sentry.io/4508333780238336";
+    o.Debug = false;
+    o.TracesSampleRate = 1.0;
+    o.ProfilesSampleRate = 1.0;
+    o.AddIntegration(new ProfilingIntegration(TimeSpan.FromMilliseconds(500)));
+});
+
 // 加载配置
 builder.Services.Configure<TelerikReportOptions>(builder.Configuration.GetSection("TelerikReportOptions"));
 builder.Services.Configure<RedisKeysOptions>(builder.Configuration.GetSection("RedisKeys"));
@@ -65,17 +74,17 @@ builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
     };
 });
 //Sentry
-builder.WebHost.UseSentry(options =>
-{
-    var sentryConfig = builder.Configuration.GetSection("Sentry").Get<SentryOptions>();
+//builder.WebHost.UseSentry(options =>
+//{
+//    var sentryConfig = builder.Configuration.GetSection("Sentry").Get<SentryOptions>();
 
-    options.Dsn = sentryConfig.Dsn;
+//    options.Dsn = sentryConfig.Dsn;
 
-    options.TracesSampleRate = sentryConfig.TracesSampleRate;
-#if DEBUG
-    options.Debug = sentryConfig.Debug;
-#endif
-});
+//    options.TracesSampleRate = sentryConfig.TracesSampleRate;
+//#if DEBUG
+//    options.Debug = sentryConfig.Debug;
+//#endif
+//});
 
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
