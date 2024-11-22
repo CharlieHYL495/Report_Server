@@ -61,7 +61,7 @@ builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
     {
         Storage = new FileStorage(),
         ReportSourceResolver = new UriReportSourceResolver(
-            Path.Combine(env.ContentRootPath, "Reports"))
+            Path.Combine(env.ContentRootPath, "reports"))
     };
 });
 //Sentry
