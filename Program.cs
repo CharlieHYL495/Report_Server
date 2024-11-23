@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.WebHost.UseSentry(o =>
 {
-    o.Dsn = "https://64d9f60bba79e9d6f43ebf45d1cb01ea@o102090.ingest.us.sentry.io/4508333780238336";
+    o.Dsn = "https://c2c0c0e1939d1af158ac0b9ae7b9da68@o102090.ingest.us.sentry.io/4508333770014720";
     o.Debug = false;
     o.TracesSampleRate = 1.0;
     o.ProfilesSampleRate = 1.0;
