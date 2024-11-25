@@ -119,10 +119,11 @@
         public async Task SaveCategoryToRedisAsync(string token)
         {
             var categories = await GetCategoriesAsync(token);
-            using var redisClient = _redisClientsManager.GetClient();
+        
 
             var tasks = categories.Select(async category =>
             {
+                using var redisClient = _redisClientsManager.GetClient();
                 var reportList = await GetReportListWithParametersAsync(token, category.Id);
                 var categoryWithReports = new
                 {
@@ -137,16 +138,16 @@
             await Task.WhenAll(tasks);
         }
         // Method logic to save category data to Redis
- 
+
         private void SaveToRedis(IRedisClient redisClient, string categoryId, object categoryWithReports)
         {
 
             var categoryJson = JsonConvert.SerializeObject(categoryWithReports, Formatting.Indented);
-            redisClient.SetValue($"{_redisKeyPrefix}{categoryId}", categoryJson);
+            redisClient.SetValueIfNotExists($"{_redisKeyPrefix}{categoryId}", categoryJson);
         }
 
         //Get token
-            public async Task<string> GetTokenAsync()
+        public async Task<string> GetTokenAsync()
         {
             var token = new TelerikUserToken();
             try

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using ServiceStack.Redis;
 using System.Security.Cryptography;
 using Microsoft.Extensions.Options;
 using Report.Server.Services;
@@ -12,6 +11,17 @@ using Microsoft.AspNetCore.SignalR;
 using Telerik.Reporting.Cache.File;
 using Telerik.Reporting.Services;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.DependencyInjection;
+
+using Telerik.Reporting.Services;
+using Telerik.Reporting.Services.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
+using ServiceStack.Redis;
+using Telerik.Reporting.Cache.Interfaces;
+using Microsoft.AspNetCore.Identity;
+using StackExchange.Redis;
+using Telerik.Reporting.Cache.StackExchangeRedis;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,34 +68,35 @@ builder.Services.AddAuthorization();
 var redisConnectionString = builder.Configuration["RedisConnString"];
 builder.Services.AddSingleton<IRedisClientsManager>(_ => new RedisManagerPool(redisConnectionString));
 
+
 // 注册服务
-builder.Services.AddScoped<RedisService>();
-builder.Services.AddScoped<TelerikReportService>();
+builder.Services.AddSingleton<RedisService>();
+builder.Services.AddSingleton<TelerikReportService>();
 builder.Services.AddHostedService<ReportsHostedService>();
+
+
 builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
 {
     var env = sp.GetRequiredService<IWebHostEnvironment>();
 
+    var redisOptions = new ConfigurationOptions
+    {
+        EndPoints = { "101.100.172.172:6379" },
+        Password = "Bi35K0yqV9XmQtvL08S434QMCHthnt9e",
+        DefaultDatabase = 0,            
+        AbortOnConnectFail = false       
+    };
+
+    var redisConnection = ConnectionMultiplexer.Connect(redisOptions);
+
     return new ReportServiceConfiguration
     {
-        Storage = new FileStorage(),
+        Storage = new RedisStorage(redisConnection, "report-cache:"),
         ReportSourceResolver = new UriReportSourceResolver(
             Path.Combine(env.ContentRootPath, "reports"))
+
     };
 });
-//Sentry
-//builder.WebHost.UseSentry(options =>
-//{
-//    var sentryConfig = builder.Configuration.GetSection("Sentry").Get<SentryOptions>();
-
-//    options.Dsn = sentryConfig.Dsn;
-
-//    options.TracesSampleRate = sentryConfig.TracesSampleRate;
-//#if DEBUG
-//    options.Debug = sentryConfig.Debug;
-//#endif
-//});
-
 
 builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
 {
