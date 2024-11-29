@@ -1,26 +1,16 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
-using Microsoft.Extensions.Options;
 using Report.Server.Services;
 using Report.Server.Workers;
 using Microsoft.Extensions.FileProviders;
 using Report.Server;
 using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.AspNetCore.SignalR;
-using Telerik.Reporting.Cache.File;
 using Telerik.Reporting.Services;
-using Microsoft.OpenApi.Models;
-using Microsoft.Extensions.DependencyInjection;
-
-using Telerik.Reporting.Services;
-using Telerik.Reporting.Services.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
 using ServiceStack.Redis;
-using Telerik.Reporting.Cache.Interfaces;
-using Microsoft.AspNetCore.Identity;
-using StackExchange.Redis;
 using Telerik.Reporting.Cache.StackExchangeRedis;
+using StackExchange.Redis;
+
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -66,25 +56,30 @@ builder.Services.AddAuthorization();
 
 // 配置Redis客户端
 var redisConnectionString = builder.Configuration["RedisConnString"];
-builder.Services.AddSingleton<IRedisClientsManager>(_ => new RedisManagerPool(redisConnectionString));
 
+// 配置 Redis 连接池选项
+var redisPoolConfig = new RedisPoolConfig
+{
+    MaxPoolSize = 50,
+};
+builder.Services.AddSingleton<IRedisClientsManager>(_ =>
+    new RedisManagerPool(redisConnectionString, redisPoolConfig));
 
 // 注册服务
 builder.Services.AddSingleton<RedisService>();
 builder.Services.AddSingleton<TelerikReportService>();
 builder.Services.AddHostedService<ReportsHostedService>();
-
-
 builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
 {
     var env = sp.GetRequiredService<IWebHostEnvironment>();
 
     var redisOptions = new ConfigurationOptions
     {
-        EndPoints = { "101.100.172.172:6379" },
+        EndPoints = { "5.223.49.192:6379" },
         Password = "Bi35K0yqV9XmQtvL08S434QMCHthnt9e",
-        DefaultDatabase = 0,            
-        AbortOnConnectFail = false       
+        DefaultDatabase = 0,
+        ConnectTimeout = 15000,
+        AbortOnConnectFail = false
     };
 
     var redisConnection = ConnectionMultiplexer.Connect(redisOptions);
@@ -94,7 +89,6 @@ builder.Services.AddSingleton<IReportServiceConfiguration>(sp =>
         Storage = new RedisStorage(redisConnection, "report-cache:"),
         ReportSourceResolver = new UriReportSourceResolver(
             Path.Combine(env.ContentRootPath, "reports"))
-
     };
 });
 
@@ -121,13 +115,6 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(b =>
         );
 }));
 
-builder.Services.AddLogging(); // 如果有日志依赖
-builder.Logging.AddDebug();
-builder.Logging.AddConsole();
-
-
-
-
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -137,8 +124,6 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 builder.Services.AddControllers().AddNewtonsoftJson();
-
-
 
 var app = builder.Build();
 var rootPath = AppContext.BaseDirectory;

@@ -70,7 +70,7 @@ namespace Report.Server.Services
 
 public class MerchantData
 {
-    [JsonProperty("merchant_guid")]
+    [JsonProperty("guid")]
     public string MerchantGuid { get; set; }
 
     [JsonProperty("report_categories")]

@@ -113,14 +113,10 @@
                 _logger.LogError(ex, "An error occurred while saving reports to local.");
             }
         }
-
-
         // Save category data to Redis
         public async Task SaveCategoryToRedisAsync(string token)
         {
             var categories = await GetCategoriesAsync(token);
-        
-
             var tasks = categories.Select(async category =>
             {
                 using var redisClient = _redisClientsManager.GetClient();
@@ -138,14 +134,11 @@
             await Task.WhenAll(tasks);
         }
         // Method logic to save category data to Redis
-
         private void SaveToRedis(IRedisClient redisClient, string categoryId, object categoryWithReports)
         {
-
-            var categoryJson = JsonConvert.SerializeObject(categoryWithReports, Formatting.Indented);
-            redisClient.SetValueIfNotExists($"{_redisKeyPrefix}{categoryId}", categoryJson);
+            var categoryJson = JsonConvert.SerializeObject(categoryWithReports, Formatting.None);
+            redisClient.SetValue($"{_redisKeyPrefix}{categoryId}", categoryJson);
         }
-
         //Get token
         public async Task<string> GetTokenAsync()
         {
